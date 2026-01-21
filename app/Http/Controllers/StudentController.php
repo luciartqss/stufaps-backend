@@ -149,4 +149,27 @@ class StudentController extends Controller
             'message' => 'Student deleted successfully'
         ]);
     }
+//jed code
+    public function import(Request $request): JsonResponse
+    {
+        $students = $request->input('students', []);
+        $created = [];
+
+        foreach ($students as $studentData) {
+            // Remove empty values
+            $studentData = array_filter($studentData, fn($v) => $v !== '');
+
+            // Only keep keys that actually exist in the DB table
+            $allowed = (new Student())->getFillable();
+            $filtered = array_intersect_key($studentData, array_flip($allowed));
+
+            $created[] = Student::create($filtered);
+        }
+
+        return response()->json([
+            'message' => 'Students imported successfully',
+            'data' => $created
+        ], 201);
+    }
+//ends here
 }
