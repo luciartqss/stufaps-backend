@@ -13,7 +13,15 @@ class StudentController extends Controller
      */
     public function index(): JsonResponse
     {
-        $students = Student::with('disbursements')->get();
+        $students = \App\Models\Student::with('latestDisbursement')->get();
+
+        // Add academic_year and semester from latest disbursement to each student
+        $students = $students->map(function ($student) {
+            $student->academic_year = $student->latestDisbursement->academic_year ?? null;
+            $student->semester = $student->latestDisbursement->semester ?? null;
+            return $student;
+        });
+
         return response()->json($students);
     }
 

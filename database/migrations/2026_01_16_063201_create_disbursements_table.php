@@ -14,16 +14,16 @@ return new class extends Migration
         Schema::create('disbursements', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('student_seq');
-            $table->string('academic_year');
-            $table->string('semester');
-            $table->enum('curriculum_year_level', ['I', 'II', 'III', 'IV', 'V', 'VI']);
-            $table->string('nta');
-            $table->string('fund_source');
-            $table->decimal('amount', 12, 2);
-            $table->string('voucher_number');
-            $table->enum('mode_of_payment', ['ATM', 'Cheque', 'Through the HEI']);
+            $table->string('academic_year')->nullable();
+            $table->string('semester')->nullable();
+            $table->enum('curriculum_year_level', ['I', 'II', 'III', 'IV', 'V', 'VI'])->nullable();
+            $table->string('nta')->nullable();
+            $table->string('fund_source')->nullable();
+            $table->decimal('amount', 12, 2)->nullable();
+            $table->string('voucher_number')->nullable();
+            $table->enum('mode_of_payment', ['ATM', 'Cheque', 'Through the HEI'])->nullable();
             $table->string('account_check_no')->nullable();
-            $table->decimal('payment_amount', 12, 2);
+            $table->decimal('payment_amount', 12, 2)->nullable();
             $table->string('lddap_number')->nullable();
             $table->date('disbursement_date')->nullable();
             $table->text('remarks')->nullable();

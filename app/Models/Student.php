@@ -104,4 +104,12 @@ class Student extends Model
     {
         return $this->hasMany(Disbursement::class, 'student_seq', 'seq');
     }
+    /**
+     * Get the latest disbursement for the student.
+     */
+    public function latestDisbursement()
+    {
+        return $this->hasOne(\App\Models\Disbursement::class, 'student_seq', 'seq')->latestOfMany();
+    }
+    
 }
