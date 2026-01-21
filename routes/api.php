@@ -13,3 +13,6 @@ Route::apiResource('students', StudentController::class);
 
 // Disbursements Routes
 Route::apiResource('disbursements', DisbursementController::class);
+
+//Jed line
+Route::post('/students/import', [StudentController::class, 'import']);
