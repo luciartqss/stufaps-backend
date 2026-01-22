@@ -12,7 +12,7 @@ class LogController extends Controller
 {
     public function index(): JsonResponse
     {
-        $logs = Log::latest()->get();
+        $logs = Log::latest('created_at')->get();
         return response()->json($logs);
     }
 
@@ -40,6 +40,11 @@ class LogController extends Controller
             return response()->json(['error' => 'Log not found'], 404);
         }
 
+        // Check if already rolled back
+        if ($log->is_rolled_back) {
+            return response()->json(['error' => 'This log has already been rolled back'], 400);
+        }
+
         try {
             $modelClass = "App\\Models\\{$log->model}";
 
@@ -50,39 +55,40 @@ class LogController extends Controller
             $oldData = is_array($log->old_data) ? $log->old_data : json_decode($log->old_data, true);
 
             if ($log->action === 'update' && $oldData) {
-                // For bulk updates, we need to use the primary key based on model
+                if ($log->model_id == 0) {
+                    // Handle bulk update
+                    $field = array_key_first($oldData);
+                    $oldValue = $oldData[$field];
+                    $newData = json_decode($log->new_data, true);
+                    $newValue = $newData[$field];
+
+                    $count = $modelClass::where($field, $newValue)->update([$field => $oldValue]);
+
+                    // Mark as rolled back (do NOT create a new log entry)
+                    $log->update(['is_rolled_back' => true]);
+
+                    return response()->json(['message' => "Reverted $count records successfully"]);
+                }
+
+                // Handle individual update
                 $primaryKey = $log->model === 'Student' ? 'seq' : 'id';
-                
-                // Find and update the record
                 $record = $modelClass::where($primaryKey, $log->model_id)->first();
 
                 if (!$record) {
                     return response()->json(['error' => 'Record not found'], 404);
                 }
 
-                $currentValues = $record->toArray();
                 $record->update($oldData);
 
-                // Log the rollback action
-                Log::create([
-                    'model' => $log->model,
-                    'model_id' => $log->model_id,
-                    'action' => 'update',
-                    'old_data' => json_encode(array_intersect_key($currentValues, $oldData)),
-                    'new_data' => json_encode($oldData),
-                    'changed_fields' => $log->changed_fields,
-                    'user_id' => auth()->id() ?? null,
-                    'ip_address' => request()->ip(),
-                ]);
+                // Mark as rolled back (do NOT create a new log entry)
+                $log->update(['is_rolled_back' => true]);
 
                 return response()->json(['message' => 'Record reverted successfully']);
             }
 
             return response()->json(['error' => 'Cannot rollback this action'], 400);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Rollback failed: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['error' => 'Rollback failed: ' . $e->getMessage()], 500);
         }
     }
 }
