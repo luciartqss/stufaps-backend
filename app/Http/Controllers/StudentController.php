@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use App\Services\LogService;
+use App\Models\Log;
 
 class StudentController extends Controller
 {
@@ -69,6 +71,9 @@ class StudentController extends Controller
         ]);
 
         $student = Student::create($validated);
+
+        // Log the creation
+        LogService::log($student, $student->seq, 'create', null, $student->toArray());
 
         return response()->json([
             'message' => 'Student created successfully',
@@ -177,7 +182,7 @@ class StudentController extends Controller
      */
     public function bulkUpdateField(Request $request): JsonResponse
     {
-        $field = $request->input('field'); // 'degree_program' or 'name_of_institution'
+        $field = $request->input('field');
         $oldValue = $request->input('old_value');
         $newValue = $request->input('new_value');
 
@@ -185,7 +190,24 @@ class StudentController extends Controller
             return response()->json(['error' => 'Invalid field'], 400);
         }
 
-        $count = \App\Models\Student::where($field, $oldValue)->update([$field => $newValue]);
+        // Get the IDs of records that will be updated
+        $affectedStudentIds = Student::where($field, $oldValue)->pluck('seq')->toArray();
+
+        $count = Student::where($field, $oldValue)->update([$field => $newValue]);
+
+        // Log each affected student individually for proper rollback
+        foreach ($affectedStudentIds as $studentId) {
+            Log::create([
+                'model' => 'Student',
+                'model_id' => $studentId,
+                'action' => 'update',
+                'old_data' => json_encode([$field => $oldValue]),
+                'new_data' => json_encode([$field => $newValue]),
+                'changed_fields' => $field,
+                'user_id' => auth()->id() ?? null,
+                'ip_address' => request()->ip(),
+            ]);
+        }
 
         return response()->json([
             'message' => "Updated $count records.",

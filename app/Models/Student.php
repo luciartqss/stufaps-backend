@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Services\LogService;
 
 class Student extends Model
 {
@@ -104,6 +105,7 @@ class Student extends Model
     {
         return $this->hasMany(Disbursement::class, 'student_seq', 'seq');
     }
+
     /**
      * Get the latest disbursement for the student.
      */
@@ -111,5 +113,24 @@ class Student extends Model
     {
         return $this->hasOne(\App\Models\Disbursement::class, 'student_seq', 'seq')->latestOfMany();
     }
-    
+
+    // Boot method for logging CRUD operations
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::created(function ($model) {
+            LogService::log($model, $model->seq, 'create', null, $model->toArray());
+        });
+
+        static::updating(function ($model) {
+            $oldData = $model->getOriginal();
+            $newData = $model->getAttributes();
+            LogService::log($model, $model->seq, 'update', $oldData, $newData);
+        });
+
+        static::deleting(function ($model) {
+            LogService::log($model, $model->seq, 'delete', $model->toArray(), null);
+        });
+    }
 }

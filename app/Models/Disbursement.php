@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Services\LogService;
 
 class Disbursement extends Model
 {
@@ -51,5 +52,25 @@ class Disbursement extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class, 'student_seq', 'seq');
+    }
+
+    // Boot method for logging CRUD operations
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::created(function ($model) {
+            LogService::log($model, $model->id, 'create', null, $model->toArray());
+        });
+
+        static::updating(function ($model) {
+            $oldData = $model->getOriginal();
+            $newData = $model->getAttributes();
+            LogService::log($model, $model->id, 'update', $oldData, $newData);
+        });
+
+        static::deleting(function ($model) {
+            LogService::log($model, $model->id, 'delete', $model->toArray(), null);
+        });
     }
 }
