@@ -16,3 +16,5 @@ Route::apiResource('disbursements', DisbursementController::class);
 
 //Jed line
 Route::post('/students/import', [StudentController::class, 'import']);
+
+Route::post('students/bulk-update-field', [StudentController::class, 'bulkUpdateField']);
