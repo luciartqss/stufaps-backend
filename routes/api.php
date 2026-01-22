@@ -9,6 +9,9 @@ use App\Http\Controllers\LogController;
 // Dashboard Routes
 Route::get('dashboard/stats', [DashboardController::class, 'stats']);
 
+//Jed, added
+use App\Http\Controllers\ScholarshipProgramController;
+
 // Students Routes
 Route::apiResource('students', StudentController::class);
 Route::post('/students/import', [StudentController::class, 'import']);
@@ -16,6 +19,10 @@ Route::post('students/bulk-update-field', [StudentController::class, 'bulkUpdate
 
 // Disbursements Routes
 Route::apiResource('disbursements', DisbursementController::class);
+
+// Scholarship Programs Routes, Jed added these two lines
+Route::apiResource('scholarship_programs', ScholarshipProgramController::class);
+Route::get('scholarship_programs/totals', [ScholarshipProgramController::class, 'totals']);
 
 // Logs Routes
 Route::get('logs', [LogController::class, 'index']);

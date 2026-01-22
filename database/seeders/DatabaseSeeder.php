@@ -13,6 +13,13 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             ScholarshipSeeder::class,
+            
         ]);
+
+        //Jed added separate seeder for scholarship programs
+        $this->call([
+            ScholarshipProgramsSeeder::class
+        ]);
+    
     }
 }
