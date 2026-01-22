@@ -5,12 +5,11 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\DisbursementController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LogController;
+//Jed, added
+use App\Http\Controllers\ScholarshipProgramController;
 
 // Dashboard Routes
 Route::get('dashboard/stats', [DashboardController::class, 'stats']);
-
-//Jed, added
-use App\Http\Controllers\ScholarshipProgramController;
 
 // Students Routes
 Route::apiResource('students', StudentController::class);
