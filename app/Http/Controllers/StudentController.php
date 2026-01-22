@@ -172,4 +172,24 @@ class StudentController extends Controller
         ], 201);
     }
 //ends here
+    /**
+     * Bulk update a specific field for students.
+     */
+    public function bulkUpdateField(Request $request): JsonResponse
+    {
+        $field = $request->input('field'); // 'degree_program' or 'name_of_institution'
+        $oldValue = $request->input('old_value');
+        $newValue = $request->input('new_value');
+
+        if (!in_array($field, ['degree_program', 'name_of_institution'])) {
+            return response()->json(['error' => 'Invalid field'], 400);
+        }
+
+        $count = \App\Models\Student::where($field, $oldValue)->update([$field => $newValue]);
+
+        return response()->json([
+            'message' => "Updated $count records.",
+            'updated_count' => $count,
+        ]);
+    }
 }
