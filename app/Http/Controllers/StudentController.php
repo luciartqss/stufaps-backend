@@ -190,24 +190,19 @@ class StudentController extends Controller
             return response()->json(['error' => 'Invalid field'], 400);
         }
 
-        // Get the IDs of records that will be updated
-        $affectedStudentIds = Student::where($field, $oldValue)->pluck('seq')->toArray();
-
         $count = Student::where($field, $oldValue)->update([$field => $newValue]);
 
-        // Log each affected student individually for proper rollback
-        foreach ($affectedStudentIds as $studentId) {
-            Log::create([
-                'model' => 'Student',
-                'model_id' => $studentId,
-                'action' => 'update',
-                'old_data' => json_encode([$field => $oldValue]),
-                'new_data' => json_encode([$field => $newValue]),
-                'changed_fields' => $field,
-                'user_id' => auth()->id() ?? null,
-                'ip_address' => request()->ip(),
-            ]);
-        }
+        // Log only ONE entry for the entire bulk edit action
+        Log::create([
+            'model' => 'Student',
+            'model_id' => 0, // Use 0 to indicate bulk action
+            'action' => 'update',
+            'old_data' => json_encode([$field => $oldValue]),
+            'new_data' => json_encode([$field => $newValue]),
+            'changed_fields' => $field,
+            'user_id' => auth()->id() ?? null,
+            'ip_address' => request()->ip(),
+        ]);
 
         return response()->json([
             'message' => "Updated $count records.",
