@@ -96,4 +96,29 @@ class ScholarshipProgramController extends Controller
         ]);
     }
 
+    public function updateSlots(): JsonResponse
+    {
+        $counts = \App\Models\Student::selectRaw('scholarship_program, COUNT(*) as total')
+            ->groupBy('scholarship_program')
+            ->get()
+            ->keyBy('scholarship_program');
+
+        foreach ($counts as $program => $row) {
+        $total = $row->total;
+
+        \App\Models\ScholarshipProgram::updateOrCreate(
+            ['scholarship_program_name' => strtoupper(trim($program))], // normalize here
+            [
+
+                'filled_slot' => $total,
+                'unfilled_slot' => \DB::raw("GREATEST(total_slot - $total, 0)"),
+            ]
+        );
+    }
+
+
+        return response()->json(['data' => \App\Models\ScholarshipProgram::all()]);
+    }
+
+
 }

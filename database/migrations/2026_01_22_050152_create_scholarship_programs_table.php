@@ -17,12 +17,24 @@ return new class extends Migration
             $table->string('description')->nullable();
             $table->integer('total_slot')->nullable();
             $table->integer('filled_slot')->nullable();
-            $table->integer('unfilled_slot')->nullable();
-            $table->string('in_charge')->nullable();    
-
+            $table->integer('unfilled_slot')->nullable();  
             $table->timestamps();
-
         });
+
+    
+        DB::table('scholarship_programs')->insert([
+            ['scholarship_program_name' => 'CMSP', 'description' => 'CHED Merit Scholarship Program', 'total_slot' => 100],
+            ['scholarship_program_name' => 'Estatistikolar', 'description' => 'Statistics-focused scholarship', 'total_slot' => 50],
+            ['scholarship_program_name' => 'CoScho', 'description' => 'College Scholarship Program', 'total_slot' => 70],
+            ['scholarship_program_name' => 'MSRS', 'description' => 'Medical Scholarship and Return Service', 'total_slot' => 80],
+            ['scholarship_program_name' => 'SIDA-SGP', 'description' => 'Sugarcane Industry Devt. Act', 'total_slot' => 60],
+            ['scholarship_program_name' => 'ACEF-GIAHEP', 'description' => 'Agricultural Competitiveness Enhancement Fund', 'total_slot' => 90],
+            ['scholarship_program_name' => 'MTP-SP', 'description' => 'Maritime Training Program', 'total_slot' => 75],
+            ['scholarship_program_name' => 'CGMS-SUCs', 'description' => 'CHED Grants for SUCs', 'total_slot' => 85],
+            ['scholarship_program_name' => 'SNPLP', 'description' => 'Student Loan Program', 'total_slot' => 120],
+        ]);
+
+
     }
 
     /**
