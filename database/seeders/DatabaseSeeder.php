@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
 
         //Jed added separate seeder for scholarship programs
         $this->call([
-            ScholarshipProgramsSeeder::class
+
         ]);
     
     }

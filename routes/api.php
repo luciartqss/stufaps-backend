@@ -16,6 +16,14 @@ use App\Http\Controllers\ScholarshipProgramController;
 Route::post('/login', [AuthController::class, 'login']);
 
 // ============================================
+// Public Routes (No Authentication Required)
+// ============================================
+// Scholarship Programs Routes (public read access)
+Route::get('scholarship_programs', [ScholarshipProgramController::class, 'index']);
+Route::get('scholarship_programs/totals', [ScholarshipProgramController::class, 'totals']);
+Route::get('scholarship_programs/{scholarship_program}', [ScholarshipProgramController::class, 'show']);
+
+// ============================================
 // Protected Routes (Require Authentication)
 // ============================================
 Route::middleware(['auth:sanctum'])->group(function () {
@@ -26,11 +34,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Dashboard Routes
     Route::get('dashboard/stats', [DashboardController::class, 'stats']);
 
-// Scholarship Programs Routes, Jed added these two lines
-Route::apiResource('scholarship_programs', ScholarshipProgramController::class);
-Route::get('scholarship_programs/totals', [ScholarshipProgramController::class, 'totals']);
-Route::POST('scholarship_programs/update-slots', [ScholarshipProgramController::class, 'updateSlots']);
-//ends here
+    // Scholarship Programs Routes (protected write access)
+    Route::post('scholarship_programs', [ScholarshipProgramController::class, 'store']);
+    Route::put('scholarship_programs/{scholarship_program}', [ScholarshipProgramController::class, 'update']);
+    Route::delete('scholarship_programs/{scholarship_program}', [ScholarshipProgramController::class, 'destroy']);
+    Route::post('scholarship_programs/update-slots', [ScholarshipProgramController::class, 'updateSlots']);
     // Students Routes
     Route::apiResource('students', StudentController::class);
     Route::post('/students/import', [StudentController::class, 'import']);
@@ -38,10 +46,6 @@ Route::POST('scholarship_programs/update-slots', [ScholarshipProgramController::
 
     // Disbursements Routes
     Route::apiResource('disbursements', DisbursementController::class);
-
-    // Scholarship Programs Routes, Jed added these two lines
-    Route::apiResource('scholarship_programs', ScholarshipProgramController::class);
-    Route::get('scholarship_programs/totals', [ScholarshipProgramController::class, 'totals']);
 
     // Logs Routes
     Route::get('logs', [LogController::class, 'index']);

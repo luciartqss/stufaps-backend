@@ -15,14 +15,15 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
+        
+        // Disable redirect for unauthenticated requests (API-only backend)
+        $middleware->redirectGuestsTo(fn () => null);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Return JSON 401 for unauthenticated API requests instead of redirecting
+        // Return JSON 401 for unauthenticated requests instead of redirecting
         $exceptions->render(function (AuthenticationException $e, Request $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json([
-                    'message' => 'Unauthenticated.',
-                ], 401);
-            }
+            return response()->json([
+                'message' => 'Unauthenticated.',
+            ], 401);
         });
     })->create();
