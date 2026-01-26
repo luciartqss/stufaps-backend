@@ -22,6 +22,8 @@ Route::apiResource('disbursements', DisbursementController::class);
 // Scholarship Programs Routes, Jed added these two lines
 Route::apiResource('scholarship_programs', ScholarshipProgramController::class);
 Route::get('scholarship_programs/totals', [ScholarshipProgramController::class, 'totals']);
+Route::POST('scholarship_programs/update-slots', [ScholarshipProgramController::class, 'updateSlots']);
+//ends here
 
 // Logs Routes
 Route::get('logs', [LogController::class, 'index']);
