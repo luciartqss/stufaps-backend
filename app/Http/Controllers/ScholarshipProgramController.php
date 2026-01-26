@@ -120,5 +120,16 @@ class ScholarshipProgramController extends Controller
         return response()->json(['data' => \App\Models\ScholarshipProgram::all()]);
     }
 
+    public function editSlot(Request $request)
+    {
+        $program = ScholarshipProgram::findOrFail($request->id);
+        $program->total_slot = $request->slots;
+        $program->unfilled_slot = $request->slots - $program->filled_slot;
+        $program->save();
+
+        return response()->json(['success' => true, 'program' => $program]);
+    }
+
+
 
 }
