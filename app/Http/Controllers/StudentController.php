@@ -154,6 +154,7 @@ class StudentController extends Controller
             'message' => 'Student deleted successfully'
         ]);
     }
+    
 //jed code
     public function import(Request $request): JsonResponse
     {
@@ -176,7 +177,15 @@ class StudentController extends Controller
             'data' => $created
         ], 201);
     }
+
+    protected static function booted()
+    {
+        static::created(function () {
+            app(\App\Http\Controllers\ScholarshipProgramController::class)->updateSlots();
+        });
+    }
 //ends here
+
     /**
      * Bulk update a specific field for students.
      */
