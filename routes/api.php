@@ -5,6 +5,7 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\DisbursementController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LogController;
+use App\Http\Controllers\AuthController;
 //Jed, added
 use App\Http\Controllers\ScholarshipProgramController;
 
@@ -30,3 +31,6 @@ Route::post('scholarship_programs/edit-slots', [ScholarshipProgramController::cl
 Route::get('logs', [LogController::class, 'index']);
 Route::post('logs', [LogController::class, 'store']);
 Route::post('logs/{id}/rollback', [LogController::class, 'rollback']);
+
+// Auth
+Route::post('auth/login', [AuthController::class, 'login']);
