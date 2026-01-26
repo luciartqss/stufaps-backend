@@ -23,6 +23,7 @@ Route::apiResource('disbursements', DisbursementController::class);
 Route::apiResource('scholarship_programs', ScholarshipProgramController::class);
 Route::get('scholarship_programs/totals', [ScholarshipProgramController::class, 'totals']);
 Route::POST('scholarship_programs/update-slots', [ScholarshipProgramController::class, 'updateSlots']);
+Route::post('scholarship_programs/edit-slots', [ScholarshipProgramController::class, 'editSlot']);
 //ends here
 
 // Logs Routes
