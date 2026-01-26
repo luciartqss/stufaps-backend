@@ -31,7 +31,7 @@ return [
     /*
      * Matches the request origin. `[*]` allows all origins.
      */
-    'allowed_origins' => ['*'],
+    'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:5173')],
 
     /*
      * Matches the request origin with, similar to `Request::is()`
@@ -46,15 +46,15 @@ return [
     /*
      * Sets the Access-Control-Expose-Headers response header.
      */
-    'exposed_headers' => false,
+    'exposed_headers' => [],
 
     /*
      * Sets the Access-Control-Max-Age response header.
      */
-    'max_age' => false,
+    'max_age' => 0,
 
     /*
      * Sets the Access-Control-Allow-Credentials header.
      */
-    'supports_credentials' => false,
+    'supports_credentials' => true,
 ];
