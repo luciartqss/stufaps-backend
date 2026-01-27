@@ -19,6 +19,6 @@ class ScholarshipProgram extends Model
         'total_slot',
         'filled_slot',
         'unfilled_slot',
-        'in_charge',
+        'academic_year',
     ];
 }

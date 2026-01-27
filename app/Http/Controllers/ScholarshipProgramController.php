@@ -29,8 +29,8 @@ class ScholarshipProgramController extends Controller
             'total_slot'    => $request->total_slot,
             'filled_slot'   => $request->filled_slot,
             'unfilled_slot' => $request->total_slot - $request->filled_slot, // auto compute
-            'in_charge'     => $request->in_charge,
-        ]);
+            'academic_year' => $request->academic_year,
+            ]);
 
         return response()->json([
             'success' => true,
@@ -38,6 +38,8 @@ class ScholarshipProgramController extends Controller
             'data' => $program
         ], 201);
     }
+
+
 
     /**
      * Show a specific scholarship program.
@@ -65,7 +67,7 @@ class ScholarshipProgramController extends Controller
             'filled_slot'   => $request->filled_slot ?? $program->filled_slot,
             'unfilled_slot' => ($request->total_slot ?? $program->total_slot) 
                                 - ($request->filled_slot ?? $program->filled_slot),
-            'in_charge'     => $request->in_charge ?? $program->in_charge,
+            'academic_year' => $request->academic_year ?? $program->academic_year,
         ]);
 
         return response()->json([
@@ -108,9 +110,12 @@ class ScholarshipProgramController extends Controller
         $total = $row->total;
 
         \App\Models\ScholarshipProgram::updateOrCreate(
-            ['scholarship_program_name' => strtoupper(trim($program))], // normalize here
             [
-
+                'scholarship_program_name' => strtoupper(trim($program)),
+                'academic_year' => $academicYear,
+            ], // normalize here
+            
+            [
                 'filled_slot' => $total,
                 'unfilled_slot' => \DB::raw("GREATEST(total_slot - $total, 0)"),
             ]
