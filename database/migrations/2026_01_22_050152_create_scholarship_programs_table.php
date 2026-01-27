@@ -18,8 +18,10 @@ return new class extends Migration
             $table->integer('total_slot')->nullable();
             $table->integer('filled_slot')->nullable();
             $table->integer('unfilled_slot')->nullable();
-                    
+            $table->string('academic_year');     
             $table->timestamps();
+
+            $table->unique(['scholarship_program_name', 'academic_year']);
 
         });
 
