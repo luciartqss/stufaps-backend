@@ -162,13 +162,33 @@ class StudentController extends Controller
         $students = $request->input('students', []);
         $created = [];
 
+        // Date fields that need validation
+        $dateFields = ['date_of_birth'];
+
         foreach ($students as $studentData) {
             // Remove empty values
-            $studentData = array_filter($studentData, fn($v) => $v !== '');
+            $studentData = array_filter($studentData, fn($v) => $v !== '' && $v !== null);
+
+            // Validate and clean date fields
+            foreach ($dateFields as $dateField) {
+                if (isset($studentData[$dateField])) {
+                    $dateValue = $studentData[$dateField];
+                    // Check if it's a valid date format (YYYY-MM-DD or similar)
+                    if (!preg_match('/^\d{4}-\d{2}-\d{2}/', $dateValue)) {
+                        // Not a valid date format - remove it
+                        unset($studentData[$dateField]);
+                    }
+                }
+            }
 
             // Only keep keys that actually exist in the DB table
             $allowed = (new Student())->getFillable();
             $filtered = array_intersect_key($studentData, array_flip($allowed));
+
+            // Skip if no valid data
+            if (empty($filtered)) {
+                continue;
+            }
 
             $created[] = Student::create($filtered);
         }

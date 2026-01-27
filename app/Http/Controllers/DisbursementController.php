@@ -97,4 +97,50 @@ class DisbursementController extends Controller
             'message' => 'Disbursement deleted successfully'
         ]);
     }
+
+    /**
+     * Bulk import disbursements.
+     */
+    public function bulk(Request $request): JsonResponse
+    {
+        $disbursements = $request->input('disbursements', []);
+        $created = [];
+        $errors = [];
+
+        foreach ($disbursements as $index => $disbursementData) {
+            try {
+                // Skip empty curriculum_year_level
+                if (empty($disbursementData['curriculum_year_level'])) {
+                    unset($disbursementData['curriculum_year_level']);
+                }
+
+                // Skip empty mode_of_payment
+                if (empty($disbursementData['mode_of_payment'])) {
+                    unset($disbursementData['mode_of_payment']);
+                }
+
+                // Convert student_seq from string to integer if needed
+                if (isset($disbursementData['student_seq'])) {
+                    $disbursementData['student_seq'] = (int) $disbursementData['student_seq'];
+                }
+
+                $disbursement = Disbursement::create($disbursementData);
+                $created[] = $disbursement;
+            } catch (\Exception $e) {
+                $errors[] = [
+                    'index' => $index,
+                    'data' => $disbursementData,
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+
+        return response()->json([
+            'message' => count($created) . ' disbursements imported successfully',
+            'created_count' => count($created),
+            'error_count' => count($errors),
+            'errors' => $errors,
+            'data' => $created
+        ], count($errors) > 0 ? 207 : 201);
+    }
 }
