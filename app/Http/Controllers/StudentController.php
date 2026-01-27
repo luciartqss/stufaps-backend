@@ -34,15 +34,15 @@ class StudentController extends Controller
     {
         $validated = $request->validate([
             'in_charge' => 'nullable|string|max:191',
-            'award_year' => 'nullable|integer|min:2000|max:2100',
+            'award_year' => 'nullable|string|max:191',
             'scholarship_program' => 'nullable|string|max:191',
             'award_number' => 'nullable|string|max:191',
             'surname' => 'nullable|string|max:191',
             'first_name' => 'nullable|string|max:191',
             'middle_name' => 'nullable|string|max:191',
             'extension' => 'nullable|string|max:191',
-            'sex' => 'nullable|in:Male,Female',
-            'date_of_birth' => 'nullable|date',
+            'sex' => 'nullable|string|max:191',
+            'date_of_birth' => 'nullable|string|max:191',
             'contact_number' => 'nullable|string|max:191',
             'email_address' => 'nullable|email|max:191',
             'street_brgy' => 'nullable|string|max:191',
@@ -50,7 +50,7 @@ class StudentController extends Controller
             'province' => 'nullable|string|max:191',
             'congressional_district' => 'nullable|string|max:191',
             'zip_code' => 'nullable|string|max:191',
-            'special_group' => 'nullable|in:IP,PWD,Solo Parent',
+            'special_group' => 'nullable|string|max:191',
             'certification_number' => 'nullable|string|max:191',
             'name_of_institution' => 'nullable|string|max:191',
             'uii' => 'nullable|string|max:191',
@@ -59,13 +59,13 @@ class StudentController extends Controller
             'degree_program' => 'nullable|string|max:191',
             'program_major' => 'nullable|string|max:191',
             'program_discipline' => 'nullable|string|max:191',
-            'program_degree_level' => 'nullable|in:Pre-baccalaureate,Baccalaureate,Post Baccalaureate,Masters,Doctorate',
-            'authority_type' => 'nullable|in:GP,GR,RRPA,COPC',
+            'program_degree_level' => 'nullable|string|max:191',
+            'authority_type' => 'nullable|string|max:191',
             'authority_number' => 'nullable|string|max:191',
             'series' => 'nullable|string|max:191',
-            'is_priority' => 'nullable|boolean',
+            'is_priority' => 'nullable|string|max:191',
             'basis_cmo' => 'nullable|string|max:191',
-            'scholarship_status' => 'nullable|in:On-going,Graduated,Terminated',
+            'scholarship_status' => 'nullable|string|max:191',
             'replacement_info' => 'nullable|string',
             'termination_reason' => 'nullable|string',
         ]);
@@ -99,15 +99,15 @@ class StudentController extends Controller
     {
         $validated = $request->validate([
             'in_charge' => 'nullable|string|max:191',
-            'award_year' => 'nullable|integer|min:2000|max:2100',
+            'award_year' => 'nullable|string|max:191',
             'scholarship_program' => 'nullable|string|max:191',
             'award_number' => 'nullable|string|max:191',
             'surname' => 'nullable|string|max:191',
             'first_name' => 'nullable|string|max:191',
             'middle_name' => 'nullable|string|max:191',
             'extension' => 'nullable|string|max:191',
-            'sex' => 'nullable|in:Male,Female',
-            'date_of_birth' => 'nullable|date',
+            'sex' => 'nullable|string|max:191',
+            'date_of_birth' => 'nullable|string|max:191',
             'contact_number' => 'nullable|string|max:191',
             'email_address' => 'nullable|email|max:191',
             'street_brgy' => 'nullable|string|max:191',
@@ -115,7 +115,7 @@ class StudentController extends Controller
             'province' => 'nullable|string|max:191',
             'congressional_district' => 'nullable|string|max:191',
             'zip_code' => 'nullable|string|max:191',
-            'special_group' => 'nullable|in:IP,PWD,Solo Parent',
+            'special_group' => 'nullable|string|max:191',
             'certification_number' => 'nullable|string|max:191',
             'name_of_institution' => 'nullable|string|max:191',
             'uii' => 'nullable|string|max:191',
@@ -124,13 +124,13 @@ class StudentController extends Controller
             'degree_program' => 'nullable|string|max:191',
             'program_major' => 'nullable|string|max:191',
             'program_discipline' => 'nullable|string|max:191',
-            'program_degree_level' => 'nullable|in:Pre-baccalaureate,Baccalaureate,Post Baccalaureate,Masters,Doctorate',
-            'authority_type' => 'nullable|in:GP,GR,RRPA,COPC',
+            'program_degree_level' => 'nullable|string|max:191',
+            'authority_type' => 'nullable|string|max:191',
             'authority_number' => 'nullable|string|max:191',
             'series' => 'nullable|string|max:191',
-            'is_priority' => 'nullable|boolean',
+            'is_priority' => 'nullable|string|max:191',
             'basis_cmo' => 'nullable|string|max:191',
-            'scholarship_status' => 'nullable|in:On-going,Graduated,Terminated',
+            'scholarship_status' => 'nullable|string|max:191',
             'replacement_info' => 'nullable|string',
             'termination_reason' => 'nullable|string',
         ]);
@@ -162,24 +162,9 @@ class StudentController extends Controller
         $students = $request->input('students', []);
         $created = [];
 
-        // Date fields that need validation
-        $dateFields = ['date_of_birth'];
-
         foreach ($students as $studentData) {
             // Remove empty values
             $studentData = array_filter($studentData, fn($v) => $v !== '' && $v !== null);
-
-            // Validate and clean date fields
-            foreach ($dateFields as $dateField) {
-                if (isset($studentData[$dateField])) {
-                    $dateValue = $studentData[$dateField];
-                    // Check if it's a valid date format (YYYY-MM-DD or similar)
-                    if (!preg_match('/^\d{4}-\d{2}-\d{2}/', $dateValue)) {
-                        // Not a valid date format - remove it
-                        unset($studentData[$dateField]);
-                    }
-                }
-            }
 
             // Only keep keys that actually exist in the DB table
             $allowed = (new Student())->getFillable();
