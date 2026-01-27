@@ -19,6 +19,7 @@ Route::post('students/bulk-update-field', [StudentController::class, 'bulkUpdate
 
 // Disbursements Routes
 Route::apiResource('disbursements', DisbursementController::class);
+Route::post('disbursements/bulk', [DisbursementController::class, 'bulk']);
 
 // Scholarship Programs Routes, Jed added these two lines
 Route::apiResource('scholarship_programs', ScholarshipProgramController::class);
