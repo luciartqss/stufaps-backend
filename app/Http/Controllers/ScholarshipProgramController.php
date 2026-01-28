@@ -36,7 +36,7 @@ class ScholarshipProgramController extends Controller
             'success' => true,
             'message' => 'Scholarship program created successfully',
             'data' => $program
-        ], 201);
+        ], 191);
     }
 
 
@@ -67,7 +67,7 @@ class ScholarshipProgramController extends Controller
             'filled_slot'   => $request->filled_slot ?? $program->filled_slot,
             'unfilled_slot' => ($request->total_slot ?? $program->total_slot) 
                                 - ($request->filled_slot ?? $program->filled_slot),
-            'academic_year' => $request->academic_year ?? $program->academic_year,
+        
         ]);
 
         return response()->json([
@@ -112,7 +112,6 @@ class ScholarshipProgramController extends Controller
         \App\Models\ScholarshipProgram::updateOrCreate(
             [
                 'scholarship_program_name' => strtoupper(trim($program)),
-                'academic_year' => $academicYear,
             ], // normalize here
             
             [
@@ -121,7 +120,6 @@ class ScholarshipProgramController extends Controller
             ]
         );
     }
-
 
         return response()->json(['data' => \App\Models\ScholarshipProgram::all()]);
     }
