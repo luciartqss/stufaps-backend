@@ -8,6 +8,7 @@ use App\Http\Controllers\LogController;
 use App\Http\Controllers\AuthController;
 //Jed, added
 use App\Http\Controllers\ScholarshipProgramController;
+use App\Http\Controllers\ScholarshipProgramRecordController;
 
 // Dashboard Routes
 Route::get('dashboard/stats', [DashboardController::class, 'stats']);
@@ -27,6 +28,8 @@ Route::get('scholarship_programs/totals', [ScholarshipProgramController::class, 
 Route::POST('scholarship_programs/update-slots', [ScholarshipProgramController::class, 'updateSlots']);
 Route::post('scholarship_programs/edit-slots', [ScholarshipProgramController::class, 'editSlot']);
 //ends here
+
+Route::apiResource('scholarship_program_records', ScholarshipProgramRecordController::class);
 
 // Logs Routes
 Route::get('logs', [LogController::class, 'index']);

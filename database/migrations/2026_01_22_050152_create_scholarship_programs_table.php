@@ -13,33 +13,24 @@ return new class extends Migration
     {
         Schema::create('scholarship_programs', function (Blueprint $table) {
             $table->id();
-            $table->string('scholarship_program_name')->nullable();
-            $table->string('description')->nullable();
+            $table->unsignedBigInteger('program_id');
+            $table->string('scholarship_program_name')->nullable(); // ✅ added
+            $table->string('academic_year');
             $table->integer('total_slot')->nullable();
             $table->integer('filled_slot')->nullable();
             $table->integer('unfilled_slot')->nullable();
-            $table->string('academic_year')->nullable();;     
             $table->timestamps();
 
-   
+            // ✅ Correct foreign key reference
+            $table->foreign('program_id') 
+                ->references('id') 
+                ->on('scholarship_program_records') 
+                ->onDelete('cascade'); 
 
+            $table->unique(['program_id', 'academic_year']);
         });
-
-    
-        DB::table('scholarship_programs')->insert([
-            ['scholarship_program_name' => 'CMSP', 'description' => 'CHED Merit Scholarship Program', 'total_slot' => 100],
-            ['scholarship_program_name' => 'Estatistikolar', 'description' => 'Statistics-focused scholarship', 'total_slot' => 50],
-            ['scholarship_program_name' => 'CoScho', 'description' => 'College Scholarship Program', 'total_slot' => 70],
-            ['scholarship_program_name' => 'MSRS', 'description' => 'Medical Scholarship and Return Service', 'total_slot' => 80],
-            ['scholarship_program_name' => 'SIDA-SGP', 'description' => 'Sugarcane Industry Devt. Act', 'total_slot' => 60],
-            ['scholarship_program_name' => 'ACEF-GIAHEP', 'description' => 'Agricultural Competitiveness Enhancement Fund', 'total_slot' => 90],
-            ['scholarship_program_name' => 'MTP-SP', 'description' => 'Maritime Training Program', 'total_slot' => 75],
-            ['scholarship_program_name' => 'CGMS-SUCs', 'description' => 'CHED Grants for SUCs', 'total_slot' => 85],
-            ['scholarship_program_name' => 'SNPLP', 'description' => 'Student Loan Program', 'total_slot' => 120],
-        ]);
-
-
     }
+
 
     /**
      * Reverse the migrations.

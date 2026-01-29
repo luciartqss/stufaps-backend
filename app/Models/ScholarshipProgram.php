@@ -14,11 +14,16 @@ class ScholarshipProgram extends Model
 
     // ✅ Mass assignable fields
     protected $fillable = [
+        'program_id',
         'scholarship_program_name',
-        'description',
+        'academic_year',
         'total_slot',
         'filled_slot',
         'unfilled_slot',
-        'academic_year',
     ];
+
+    public function programRecord()
+    {
+        return $this->belongsTo(\App\Models\ScholarshipProgramRecord::class, 'program_id');
+    }
 }
