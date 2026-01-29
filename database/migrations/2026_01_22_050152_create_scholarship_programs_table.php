@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -19,6 +20,12 @@ return new class extends Migration
             $table->integer('total_slot')->nullable();
             $table->integer('filled_slot')->nullable();
             $table->integer('unfilled_slot')->nullable();
+            $table->string('academic_year')->nullable();
+            $table->timestamps();
+
+            // Short index name to avoid MySQL identifier length limits
+            $table->unique(['scholarship_program_name', 'academic_year'], 'sp_name_ay_unique');
+            $table->string('academic_year')->nullable();;     
             $table->timestamps();
 
             // ✅ Correct foreign key reference

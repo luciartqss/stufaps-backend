@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Models\ScholarshipProgram;
+use Illuminate\Support\Facades\DB;
 
 class ScholarshipProgramController extends Controller
 {
