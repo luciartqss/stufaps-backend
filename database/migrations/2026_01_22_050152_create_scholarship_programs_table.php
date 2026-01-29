@@ -24,6 +24,10 @@ return new class extends Migration
 
             // Short index name to avoid MySQL identifier length limits
             $table->unique(['scholarship_program_name', 'academic_year'], 'sp_name_ay_unique');
+            $table->string('academic_year')->nullable();;     
+            $table->timestamps();
+
+   
 
         });
 

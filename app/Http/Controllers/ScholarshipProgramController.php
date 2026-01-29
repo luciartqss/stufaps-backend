@@ -37,7 +37,7 @@ class ScholarshipProgramController extends Controller
             'success' => true,
             'message' => 'Scholarship program created successfully',
             'data' => $program
-        ], 201);
+        ], 191);
     }
 
 
@@ -68,7 +68,7 @@ class ScholarshipProgramController extends Controller
             'filled_slot'   => $request->filled_slot ?? $program->filled_slot,
             'unfilled_slot' => ($request->total_slot ?? $program->total_slot) 
                                 - ($request->filled_slot ?? $program->filled_slot),
-            'academic_year' => $request->academic_year ?? $program->academic_year,
+        
         ]);
 
         return response()->json([
@@ -131,6 +131,27 @@ class ScholarshipProgramController extends Controller
         }
 
         return response()->json(['data' => ScholarshipProgram::all()]);
+        $counts = \App\Models\Student::selectRaw('scholarship_program, COUNT(*) as total')
+            ->groupBy('scholarship_program')
+            ->get()
+            ->keyBy('scholarship_program');
+
+        foreach ($counts as $program => $row) {
+        $total = $row->total;
+
+        \App\Models\ScholarshipProgram::updateOrCreate(
+            [
+                'scholarship_program_name' => strtoupper(trim($program)),
+            ], // normalize here
+            
+            [
+                'filled_slot' => $total,
+                'unfilled_slot' => \DB::raw("GREATEST(total_slot - $total, 0)"),
+            ]
+        );
+    }
+
+        return response()->json(['data' => \App\Models\ScholarshipProgram::all()]);
     }
 
     public function editSlot(Request $request)
