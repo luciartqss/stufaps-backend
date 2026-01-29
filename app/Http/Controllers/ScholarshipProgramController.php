@@ -100,59 +100,53 @@ class ScholarshipProgramController extends Controller
         ]);
     }
 
-    public function updateSlots(Request $request): JsonResponse
-    {
-        // Allow caller to pass academic_year; default to current cycle
-        $startYear = now()->year;
-        $defaultAy = $startYear . '-' . ($startYear + 1);
-        $academicYear = $request->input('academic_year', $defaultAy);
+    public function updateSlots(): JsonResponse
+{
+    $counts = \DB::table('students')
+        ->join('disbursements', 'students.seq', '=', 'disbursements.student_seq')
+        ->select(
+            'students.scholarship_program',
+            'disbursements.academic_year',
+            \DB::raw('COUNT(DISTINCT students.seq) as total')
+        )
+        ->groupBy('students.scholarship_program', 'disbursements.academic_year')
+        ->get();
 
-        $counts = \App\Models\Student::selectRaw('UPPER(TRIM(scholarship_program)) as program, COUNT(*) as total')
-            ->whereNotNull('scholarship_program')
-            ->groupBy('program')
-            ->get();
+    foreach ($counts as $row) {
+        $programName  = strtoupper(trim($row->scholarship_program));
+        $academicYear = $row->academic_year;
+        $total        = $row->total;
 
-        foreach ($counts as $row) {
-            $program = $row->program;
-            $total = (int) $row->total;
+        // Find program in master list
+        $programRecord = \App\Models\ScholarshipProgramRecord::where(
+            'scholarship_program_name',
+            $programName
+        )->first();
 
-            ScholarshipProgram::updateOrCreate(
+        if ($programRecord) {
+            \App\Models\ScholarshipProgram::updateOrCreate(
                 [
-                    'scholarship_program_name' => $program,
+                    'program_id'    => $programRecord->id,
                     'academic_year' => $academicYear,
                 ],
                 [
-                    'filled_slot' => $total,
-                    // Keep total_slot at least the filled count to avoid negative unfilled
-                    'total_slot' => DB::raw("GREATEST(COALESCE(total_slot, 0), $total)"),
-                    'unfilled_slot' => DB::raw("GREATEST(COALESCE(total_slot, 0) - $total, 0)"),
+                    'scholarship_program_name' => $programRecord->scholarship_program_name, // ✅ added
+                    'total_slot'    => $programRecord->total_slot,
+                    'filled_slot'   => $total,
+                    'unfilled_slot' => max($programRecord->total_slot - $total, 0),
                 ]
             );
         }
-
-        return response()->json(['data' => ScholarshipProgram::all()]);
-        $counts = \App\Models\Student::selectRaw('scholarship_program, COUNT(*) as total')
-            ->groupBy('scholarship_program')
-            ->get()
-            ->keyBy('scholarship_program');
-
-        foreach ($counts as $program => $row) {
-        $total = $row->total;
-
-        \App\Models\ScholarshipProgram::updateOrCreate(
-            [
-                'scholarship_program_name' => strtoupper(trim($program)),
-            ], // normalize here
-            
-            [
-                'filled_slot' => $total,
-                'unfilled_slot' => \DB::raw("GREATEST(total_slot - $total, 0)"),
-            ]
-        );
     }
 
-        return response()->json(['data' => \App\Models\ScholarshipProgram::all()]);
-    }
+    return response()->json([
+        'success' => true,
+        'data'    => \App\Models\ScholarshipProgram::with('programRecord')
+                        ->orderBy('academic_year')
+                        ->get()
+    ]);
+}
+
 
     public function editSlot(Request $request)
     {
