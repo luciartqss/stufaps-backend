@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class ScholarshipProgramRecords extends Model
+class ScholarshipProgramRecord extends Model
 {
     protected $table = 'scholarship_program_records';
     protected $fillable = [

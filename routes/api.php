@@ -30,6 +30,7 @@ Route::post('scholarship_programs/edit-slots', [ScholarshipProgramController::cl
 //ends here
 
 Route::apiResource('scholarship_program_records', ScholarshipProgramRecordController::class);
+Route::post('/scholarship_program_records', [ScholarshipProgramRecordController::class, 'store']);
 
 // Logs Routes
 Route::get('logs', [LogController::class, 'index']);
