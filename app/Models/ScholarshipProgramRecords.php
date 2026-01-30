@@ -10,6 +10,8 @@ class ScholarshipProgramRecords extends Model
     protected $fillable = [
         'scholarship_program_name',
         'description',
+        'total_slot',
+        'academic_year'
     ];
 
 }
