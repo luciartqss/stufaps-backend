@@ -15,12 +15,19 @@ class StudentController extends Controller
      */
     public function index(): JsonResponse
     {
-        $students = \App\Models\Student::with('latestDisbursement')->get();
+        // Eager load all disbursements so the frontend export has complete data
+        $students = \App\Models\Student::with('disbursements')->get();
 
-        // Add academic_year and semester from latest disbursement to each student
+        // Add academic_year and semester from the latest disbursement (keep full list attached)
         $students = $students->map(function ($student) {
-            $student->academic_year = $student->latestDisbursement->academic_year ?? null;
-            $student->semester = $student->latestDisbursement->semester ?? null;
+            $latest = $student->disbursements
+                ->sortByDesc('disbursement_date')
+                ->sortByDesc('created_at')
+                ->first();
+
+            $student->academic_year = $latest->academic_year ?? null;
+            $student->semester = $latest->semester ?? null;
+
             return $student;
         });
 
