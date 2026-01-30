@@ -15,20 +15,22 @@ return new class extends Migration
             $table->id();
             $table->string('scholarship_program_name')->nullable();
             $table->string('description')->nullable();
+            $table->integer('total_slot')->nullable();
+            $table->string('Academic_year')->nullable();
             $table->timestamps();
 
         });
     
         DB::table('scholarship_program_records')->insert([
-            ['scholarship_program_name' => 'CMSP', 'description' => 'CHED Merit Scholarship Program'],
-            ['scholarship_program_name' => 'Estatistikolar', 'description' => 'Statistics-focused scholarship'],
-            ['scholarship_program_name' => 'CoScho', 'description' => 'College Scholarship Program'],
-            ['scholarship_program_name' => 'MSRS', 'description' => 'Medical Scholarship and Return Service'],
-            ['scholarship_program_name' => 'SIDA-SGP', 'description' => 'Sugarcane Industry Devt. Act'],
-            ['scholarship_program_name' => 'ACEF-GIAHEP', 'description' => 'Agricultural Competitiveness Enhancement Fund'],
-            ['scholarship_program_name' => 'MTP-SP', 'description' => 'Maritime Training Program'],
-            ['scholarship_program_name' => 'CGMS-SUCs', 'description' => 'CHED Grants for SUCs'],
-            ['scholarship_program_name' => 'SNPLP', 'description' => 'Student Loan Program' ],
+            ['scholarship_program_name' => 'CMSP', 'description' => 'CHED Merit Scholarship Program', 'total_slot' => 100],
+            ['scholarship_program_name' => 'Estatistikolar', 'description' => 'Statistics-focused scholarship', 'total_slot' => 50],
+            ['scholarship_program_name' => 'CoScho', 'description' => 'College Scholarship Program', 'total_slot' => 200],
+            ['scholarship_program_name' => 'MSRS', 'description' => 'Medical Scholarship and Return Service', 'total_slot' => 75],
+            ['scholarship_program_name' => 'SIDA-SGP', 'description' => 'Sugarcane Industry Devt. Act', 'total_slot' => 150],
+            ['scholarship_program_name' => 'ACEF-GIAHEP', 'description' => 'Agricultural Competitiveness Enhancement Fund', 'total_slot' => 125],
+            ['scholarship_program_name' => 'MTP-SP', 'description' => 'Maritime Training Program', 'total_slot' => 100],
+            ['scholarship_program_name' => 'CGMS-SUCs', 'description' => 'CHED Grants for SUCs', 'total_slot' => 250],
+            ['scholarship_program_name' => 'SNPLP', 'description' => 'Student Loan Program', 'total_slot' => 300],
         ]);
 
     }
