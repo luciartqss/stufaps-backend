@@ -14,6 +14,7 @@ use App\Http\Controllers\ScholarshipProgramRecordController;
 Route::get('dashboard/stats', [DashboardController::class, 'stats']);
 
 // Students Routes
+Route::get('students/masterlist', [StudentController::class, 'masterlist']);
 Route::apiResource('students', StudentController::class);
 Route::post('/students/import', [StudentController::class, 'import']);
 Route::post('students/bulk-update-field', [StudentController::class, 'bulkUpdateField']);
