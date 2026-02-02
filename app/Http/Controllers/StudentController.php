@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Services\LogService;
 use App\Models\Log;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class StudentController extends Controller
 {
@@ -231,5 +232,73 @@ class StudentController extends Controller
             'message' => "Updated $count records.",
             'updated_count' => $count,
         ]);
+    }
+
+    /**
+     * Generate the masterlist PDF for a given program, semester, and academic year.
+     */
+    public function masterlist(Request $request)
+    {
+        $validated = $request->validate([
+            'program' => 'required|string',
+            'semester' => 'required|string',
+            'academic_year' => 'required|string',
+        ]);
+
+        $program = $validated['program'];
+        $semester = $validated['semester'];
+        $academicYear = $validated['academic_year'];
+
+        $students = Student::with(['disbursements' => function ($query) use ($academicYear, $semester) {
+            $query->where('academic_year', $academicYear)
+                  ->where('semester', $semester);
+        }])
+            ->where('scholarship_program', $program)
+            ->whereHas('disbursements', function ($query) use ($academicYear, $semester) {
+                $query->where('academic_year', $academicYear)
+                      ->where('semester', $semester);
+            })
+            ->orderBy('surname')
+            ->orderBy('first_name')
+            ->get();
+
+        if ($students->isEmpty()) {
+            return response()->json([
+                'message' => 'No students found for the selected filters.',
+            ], 404);
+        }
+
+        $students = $students->map(function ($student) {
+            $matching = $student->disbursements;
+
+            $primary = $matching
+                ->sortByDesc('disbursement_date')
+                ->sortByDesc('created_at')
+                ->first();
+
+            $student->current_year_level = $primary->curriculum_year_level ?? null;
+            $student->financial_benefits = $matching->sum(function ($disbursement) {
+                $payment = $disbursement->payment_amount ?? null;
+                if ($payment === null) {
+                    $payment = $disbursement->amount ?? 0;
+                }
+                return (float) $payment;
+            });
+            $student->remarks = $primary->remarks ?? null;
+
+            return $student;
+        });
+
+        $totalBenefits = $students->sum(fn ($student) => $student->financial_benefits ?? 0);
+
+        $pdf = Pdf::loadView('PDFs.masterlist', [
+            'students' => $students,
+            'program' => $program,
+            'semester' => $semester,
+            'academicYear' => $academicYear,
+            'totalBenefits' => $totalBenefits,
+        ])->setPaper('folio', 'landscape');
+
+        return $pdf->download("masterlist-{$program}-{$semester}-AY-{$academicYear}.pdf");
     }
 }
