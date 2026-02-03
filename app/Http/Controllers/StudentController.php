@@ -243,11 +243,35 @@ class StudentController extends Controller
             'program' => 'required|string',
             'semester' => 'required|string',
             'academic_year' => 'required|string',
+            'prepared_name' => 'nullable|array',
+            'prepared_name.*' => 'nullable|string',
+            'prepared_position' => 'nullable|array',
+            'prepared_position.*' => 'nullable|string',
+            'reviewed_name' => 'nullable|string',
+            'reviewed_position' => 'nullable|string',
+            'approved_name' => 'nullable|string',
+            'approved_position' => 'nullable|string',
         ]);
 
         $program = $validated['program'];
         $semester = $validated['semester'];
         $academicYear = $validated['academic_year'];
+
+        // Signature fields - prepared by supports 1 or 2 entries
+        $preparedNames = $validated['prepared_name'] ?? [];
+        $preparedPositions = $validated['prepared_position'] ?? [];
+        $preparedBy = [];
+        for ($i = 0; $i < max(count($preparedNames), count($preparedPositions)); $i++) {
+            $preparedBy[] = [
+                'name' => $preparedNames[$i] ?? '',
+                'position' => $preparedPositions[$i] ?? '',
+            ];
+        }
+        
+        $reviewedName = $validated['reviewed_name'] ?? '';
+        $reviewedPosition = $validated['reviewed_position'] ?? '';
+        $approvedName = $validated['approved_name'] ?? '';
+        $approvedPosition = $validated['approved_position'] ?? 'Director IV';
 
         $students = Student::with(['disbursements' => function ($query) use ($academicYear, $semester) {
             $query->where('academic_year', $academicYear)
@@ -297,6 +321,11 @@ class StudentController extends Controller
             'semester' => $semester,
             'academicYear' => $academicYear,
             'totalBenefits' => $totalBenefits,
+            'preparedBy' => $preparedBy,
+            'reviewedName' => $reviewedName,
+            'reviewedPosition' => $reviewedPosition,
+            'approvedName' => $approvedName,
+            'approvedPosition' => $approvedPosition,
         ])->setPaper('folio', 'landscape');
 
         return $pdf->download("masterlist-{$program}-{$semester}-AY-{$academicYear}.pdf");
