@@ -3,17 +3,38 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\ScholarshipProgramRecord;
 
 class ScholarshipProgramRecordController extends Controller
 {
+
     public function index()
     {
+        $programs = DB::table('scholarship_program_records as s')
+            ->leftJoin('students as st', 's.scholarship_program_name', '=', 'st.scholarship_program')
+            ->leftJoin('disbursements as d', function ($join) {
+                $join->on('d.student_seq', '=', 'st.seq')
+                    ->on('d.academic_year', '=', 's.Academic_year');
+            })
+            ->select(
+                's.id',
+                's.Academic_year',
+                's.scholarship_program_name',
+                DB::raw('MAX(s.total_slot) AS total_slot'),
+                DB::raw('COUNT(DISTINCT d.student_seq) AS total_students'),
+                DB::raw('(MAX(s.total_slot) - COUNT(DISTINCT d.student_seq)) AS unfilled_slot')
+            )
+            ->groupBy('s.id', 's.Academic_year', 's.scholarship_program_name')
+            ->orderBy('s.Academic_year')
+            ->get();
+
         return response()->json([
             'success' => true,
-            'data' => ScholarshipProgramRecord::all()
+            'data'    => $programs
         ]);
     }
+
 
     public function show($id)
     {
@@ -25,20 +46,26 @@ class ScholarshipProgramRecordController extends Controller
     }
     
     public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'scholarship_program_name' => 'nullable|string|max:191',
+            'description'              => 'nullable|string|max:255',
+            'total_slot'               => 'nullable|integer|min:0',
+            'academic_year'            => 'required|string|max:20',
+        ]);
+
+        $program = ScholarshipProgramRecord::create($validated);
+
+        return response()->json([
+            'message' => 'Scholarship program inserted successfully!',
+            'program' => $program,
+        ], 201);
+    }
+
+
+    public function slotCount()
 {
-    $validated = $request->validate([
-        'scholarship_program_name' => 'nullable|string|max:191',
-        'description'              => 'nullable|string|max:255',
-        'total_slot'               => 'nullable|integer|min:0',
-        'academic_year'            => 'required|string|max:20',
-    ]);
-
-    $program = ScholarshipProgramRecord::create($validated);
-
-    return response()->json([
-        'message' => 'Scholarship program inserted successfully!',
-        'program' => $program,
-    ], 201);
+    
 }
 
     /**
