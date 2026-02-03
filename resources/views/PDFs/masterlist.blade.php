@@ -82,31 +82,37 @@
             <tr>
             <td style="border: none;"></td><!-- NOS -->
             <td colspan="2" style="border: none; font-family: Calibri, sans-serif; font-size: 12px; text-align: left; vertical-align: top;">
-                Prepared:<br><br>
-                @if(isset($preparedBy) && count($preparedBy) > 0)
-                <strong style="font-family: Calibri, sans-serif; font-size: 13px; font-weight: bold; text-decoration: underline;">{{ $preparedBy[0]['name'] ?? '' }}</strong><br>
-                {{ $preparedBy[0]['position'] ?? '' }}
-                @endif
+            Prepared:<br><br><br>
+            @if(isset($preparedBy) && count($preparedBy) > 0)
+            <strong style="font-family: Calibri, sans-serif; font-size: 13px; font-weight: bold;">{{ $preparedBy[0]['name'] ?? '' }}</strong><br>
+            {{ $preparedBy[0]['position'] ?? '' }}
+            @endif
+            @if(isset($preparedBy) && count($preparedBy) > 1)
+            <div style="margin-top: 40px; font-family: Calibri, sans-serif; font-size: 12px; text-align: left;">
+                <strong style="font-family: Calibri, sans-serif; font-size: 13px; font-weight: bold;">{{ $preparedBy[1]['name'] ?? '' }}</strong><br>
+                {{ $preparedBy[1]['position'] ?? '' }}
+            </div>
+            @endif
             </td><!-- LRN, AWARD NO -->
-            <td colspan="2" style="border: none; vertical-align: top;">
-                @if(isset($preparedBy) && count($preparedBy) > 1)
-                <div style="font-family: Calibri, sans-serif; font-size: 12px; text-align: left;">
-                    <br><br>
-                    <strong style="font-family: Calibri, sans-serif; font-size: 13px; font-weight: bold; text-decoration: underline;">{{ $preparedBy[1]['name'] ?? '' }}</strong><br>
-                    {{ $preparedBy[1]['position'] ?? '' }}
-                </div>
-                @endif
-            </td><!-- LAST NAME (used for 2nd prepared by) -->
+            <td colspan="2" style="border: none;"></td><!-- Spacer for prepared by alignment -->
             <td style="border: none;"></td><!-- REMARKS -->
             <td colspan="3" style="border: none; font-family: Calibri, sans-serif; font-size: 12px; text-align: left; vertical-align: top;">
-                Reviewed and Certified Correct:<br><br>
-                <strong style="font-family: Calibri, sans-serif; font-size: 13px; font-weight: bold; text-decoration: underline;">{{ $reviewedName ?? '' }}</strong><br>
-                {{ $reviewedPosition ?? '' }}
+            Reviewed and Certified Correct:<br><br><br>
+            @if(isset($reviewedBy) && count($reviewedBy) > 0)
+            <strong style="font-family: Calibri, sans-serif; font-size: 13px; font-weight: bold;">{{ $reviewedBy[0]['name'] ?? '' }}</strong><br>
+            {{ $reviewedBy[0]['position'] ?? '' }}
+            @if(count($reviewedBy) > 1)
+            <div style="margin-top: 40px; font-family: Calibri, sans-serif; font-size: 12px; text-align: left;">
+                <strong style="font-family: Calibri, sans-serif; font-size: 13px; font-weight: bold;">{{ $reviewedBy[1]['name'] ?? '' }}</strong><br>
+                {{ $reviewedBy[1]['position'] ?? '' }}
+            </div>
+            @endif
+            @endif
             </td><!-- M.I., Extension, HEI -->
             <td colspan="3" style="border: none; font-family: Calibri, sans-serif; font-size: 12px; text-align: left; vertical-align: top;">
-                Approved:<br><br>
-                <strong style="font-family: Calibri, sans-serif; font-size: 13px; font-weight: bold; text-decoration: underline;">{{ $approvedName ?? '' }}</strong><br>
-                {{ $approvedPosition ?? 'Director IV' }}
+            Approved:<br><br><br>
+            <strong style="font-family: Calibri, sans-serif; font-size: 13px; font-weight: bold;">{{ $approvedName ?? '' }}</strong><br>
+            {{ $approvedPosition ?? 'Director IV' }}
             </td><!-- CURRENT YEAR LEVEL, FINANCIAL BENEFITS -->
             </tr>
         </tfoot>
