@@ -35,14 +35,14 @@
         <thead>
             <tr>
                 <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 10px; font-weight: bold;">NOS.</th>
-                <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold;">Learner Reference Number</th>
+                <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold;">Learner Reference<br>Number</th>
                 <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold;">AWARD. NO.</th>
                 <th colspan="4" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold;">NAME</th>
                 <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold;">HEI</th>
                 <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold;">PROGRAM NAME</th>
-                <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold;">CURRENT YEAR LEVEL</th>
-                <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold;">FINANCIAL BENEFITS</th>
-                <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold;">REMARKS</th>
+                <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold; line-height: 1;">CURRENT<br>YEAR<br>LEVEL<br>(1, 2,3,…)</th>
+                <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold;">FINANCIAL<br>BENEFITS</th>
+                <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold; width: 120px;">REMARKS</th>
             </tr>
             <tr>
                 <th style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold;">LAST NAME</th>
@@ -77,19 +77,37 @@
         <tfoot>
             <!-- Signature Row - Labels -->
             <tr>
-                <td colspan="12" style="border: none; height: 20px;"></td>
+            <td colspan="12" style="border: none; height: 20px;"></td>
             </tr>
             <tr>
-                <td style="border: none;"></td><!-- NOS -->
-                <td style="border: none; font-family: Calibri, sans-serif; font-size: 10px; text-align: left;">Prepared:</td><!-- LRN -->
-                <td style="border: none;"></td><!-- AWARD NO -->
-                <td style="border: none;"></td><!-- LAST NAME -->
-                <td style="border: none;"></td><!-- FIRST NAME -->
-                <td colspan="3" style="border: none; font-family: Calibri, sans-serif; font-size: 10px; text-align: left;">Reviewed and Certified Correct:</td><!-- M.I., Extension, HEI -->
-                <td style="border: none;"></td><!-- PROGRAM NAME -->
-                <td style="border: none; font-family: Calibri, sans-serif; font-size: 10px; text-align: left;">Approved:</td><!-- CURRENT YEAR LEVEL -->
-                <td style="border: none;"></td><!-- FINANCIAL BENEFITS -->
-                <td style="border: none;"></td><!-- REMARKS -->
+            <td style="border: none;"></td><!-- NOS -->
+            <td colspan="2" style="border: none; font-family: Calibri, sans-serif; font-size: 12px; text-align: left; vertical-align: top;">
+                Prepared:<br><br>
+                @if(isset($preparedBy) && count($preparedBy) > 0)
+                <strong style="font-family: Calibri, sans-serif; font-size: 13px; font-weight: bold; text-decoration: underline;">{{ $preparedBy[0]['name'] ?? '' }}</strong><br>
+                {{ $preparedBy[0]['position'] ?? '' }}
+                @endif
+            </td><!-- LRN, AWARD NO -->
+            <td colspan="2" style="border: none; vertical-align: top;">
+                @if(isset($preparedBy) && count($preparedBy) > 1)
+                <div style="font-family: Calibri, sans-serif; font-size: 12px; text-align: left;">
+                    <br><br>
+                    <strong style="font-family: Calibri, sans-serif; font-size: 13px; font-weight: bold; text-decoration: underline;">{{ $preparedBy[1]['name'] ?? '' }}</strong><br>
+                    {{ $preparedBy[1]['position'] ?? '' }}
+                </div>
+                @endif
+            </td><!-- LAST NAME (used for 2nd prepared by) -->
+            <td style="border: none;"></td><!-- REMARKS -->
+            <td colspan="3" style="border: none; font-family: Calibri, sans-serif; font-size: 12px; text-align: left; vertical-align: top;">
+                Reviewed and Certified Correct:<br><br>
+                <strong style="font-family: Calibri, sans-serif; font-size: 13px; font-weight: bold; text-decoration: underline;">{{ $reviewedName ?? '' }}</strong><br>
+                {{ $reviewedPosition ?? '' }}
+            </td><!-- M.I., Extension, HEI -->
+            <td colspan="3" style="border: none; font-family: Calibri, sans-serif; font-size: 12px; text-align: left; vertical-align: top;">
+                Approved:<br><br>
+                <strong style="font-family: Calibri, sans-serif; font-size: 13px; font-weight: bold; text-decoration: underline;">{{ $approvedName ?? '' }}</strong><br>
+                {{ $approvedPosition ?? 'Director IV' }}
+            </td><!-- CURRENT YEAR LEVEL, FINANCIAL BENEFITS -->
             </tr>
         </tfoot>
     </table>
