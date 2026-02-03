@@ -247,8 +247,10 @@ class StudentController extends Controller
             'prepared_name.*' => 'nullable|string',
             'prepared_position' => 'nullable|array',
             'prepared_position.*' => 'nullable|string',
-            'reviewed_name' => 'nullable|string',
-            'reviewed_position' => 'nullable|string',
+            'reviewed_name' => 'nullable|array',
+            'reviewed_name.*' => 'nullable|string',
+            'reviewed_position' => 'nullable|array',
+            'reviewed_position.*' => 'nullable|string',
             'approved_name' => 'nullable|string',
             'approved_position' => 'nullable|string',
         ]);
@@ -268,8 +270,15 @@ class StudentController extends Controller
             ];
         }
         
-        $reviewedName = $validated['reviewed_name'] ?? '';
-        $reviewedPosition = $validated['reviewed_position'] ?? '';
+        $reviewedNames = $validated['reviewed_name'] ?? [];
+        $reviewedPositions = $validated['reviewed_position'] ?? [];
+        $reviewedBy = [];
+        for ($i = 0; $i < max(count($reviewedNames), count($reviewedPositions)); $i++) {
+            $reviewedBy[] = [
+                'name' => $reviewedNames[$i] ?? '',
+                'position' => $reviewedPositions[$i] ?? '',
+            ];
+        }
         $approvedName = $validated['approved_name'] ?? '';
         $approvedPosition = $validated['approved_position'] ?? 'Director IV';
 
@@ -322,8 +331,7 @@ class StudentController extends Controller
             'academicYear' => $academicYear,
             'totalBenefits' => $totalBenefits,
             'preparedBy' => $preparedBy,
-            'reviewedName' => $reviewedName,
-            'reviewedPosition' => $reviewedPosition,
+            'reviewedBy' => $reviewedBy,
             'approvedName' => $approvedName,
             'approvedPosition' => $approvedPosition,
         ])->setPaper('folio', 'landscape');
