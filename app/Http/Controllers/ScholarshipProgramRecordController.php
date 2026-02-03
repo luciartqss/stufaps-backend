@@ -15,17 +15,17 @@ class ScholarshipProgramRecordController extends Controller
             ->leftJoin('students as st', 's.scholarship_program_name', '=', 'st.scholarship_program')
             ->leftJoin('disbursements as d', function ($join) {
                 $join->on('d.student_seq', '=', 'st.seq')
-                    ->on('d.academic_year', '=', 's.Academic_year');
+                     ->on('d.academic_year', '=', 's.Academic_year');
             })
             ->select(
                 's.id',
                 's.Academic_year',
                 's.scholarship_program_name',
                 DB::raw('MAX(s.total_slot) AS total_slot'),
-                DB::raw('COUNT(DISTINCT d.student_seq) AS total_students'),
-                DB::raw('(MAX(s.total_slot) - COUNT(DISTINCT d.student_seq)) AS unfilled_slot')
+                DB::raw("COUNT(DISTINCT CASE WHEN st.scholarship_status <> 'terminated' THEN d.student_seq END) AS total_students"),
+                DB::raw("(MAX(s.total_slot) - COUNT(DISTINCT CASE WHEN st.scholarship_status <> 'terminated' THEN d.student_seq END)) AS unfilled_slot")
             )
-            ->groupBy('s.id', 's.Academic_year', 's.scholarship_program_name')
+            ->groupBy('s.id', 's.Academic_year', 's.scholarship_program_name', 'st.scholarship_status')
             ->orderBy('s.Academic_year')
             ->get();
 
@@ -34,7 +34,6 @@ class ScholarshipProgramRecordController extends Controller
             'data'    => $programs
         ]);
     }
-
 
     public function show($id)
     {
