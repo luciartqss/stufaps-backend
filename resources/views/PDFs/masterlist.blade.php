@@ -27,7 +27,15 @@
         <div class="title" style="font-family: Calibri, sans-serif; font-size: 10px; font-weight: bold;">MASTERLIST OF {{ $program }}</div>
         <div class="title" style="font-family: Calibri, sans-serif; font-size: 10px; font-weight: bold;">PROGRAM BENEFICIARIES</div>
         <div style="font-family: Calibri, sans-serif; font-size: 10px; font-weight: bold;">
-            <strong>{{ $semester == 1 ? '1st' : '2nd' }}</strong> Semester, AY <strong>{{ $academicYear }}</strong>
+            <strong>
+                @if($semester === 'First' || $semester === '1st' || $semester == 1)
+                    1st
+                @elseif($semester === 'Second' || $semester === '2nd' || $semester == 2)
+                    2nd
+                @else
+                    {{ $semester }}
+                @endif
+            </strong> Semester, AY <strong>{{ $academicYear }}</strong>
         </div>
     </div>
     
