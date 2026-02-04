@@ -48,7 +48,7 @@
                 <th colspan="4" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold;">NAME</th>
                 <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold;">HEI</th>
                 <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold;">PROGRAM NAME</th>
-                <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold; line-height: 1;">CURRENT<br>YEAR<br>LEVEL<br>(1, 2,3,…)</th>
+                <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold; line-height: 1;">CURRENT<br>YEAR<br>LEVEL<br>(1,2,3,…)</th>
                 <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold;">FINANCIAL<br>BENEFITS</th>
                 <th rowspan="2" style="font-family: Calibri, sans-serif; font-size: 8px; font-weight: bold; width: 120px;">REMARKS</th>
             </tr>
