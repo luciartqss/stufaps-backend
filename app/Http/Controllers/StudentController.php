@@ -6,6 +6,7 @@ use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Services\LogService;
+use App\Services\StudentLookupService;
 use App\Models\Log;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -337,5 +338,89 @@ class StudentController extends Controller
         ])->setPaper('folio', 'landscape');
 
         return $pdf->download("masterlist-{$program}-{$semester}-AY-{$academicYear}.pdf");
+    }
+
+    /**
+     * Lookup authority/program info for a student based on UII and degree_program
+     */
+    public function lookupProgramInfo(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'uii' => 'nullable|string',
+            'name_of_institution' => 'nullable|string',
+            'degree_program' => 'nullable|string',
+            'program_major' => 'nullable|string',
+        ]);
+
+        $lookupService = app(StudentLookupService::class);
+        $result = $lookupService->fillMissingFields($validated);
+
+        return response()->json([
+            'uii' => $result['uii'] ?? null,
+            'name_of_institution' => $result['name_of_institution'] ?? null,
+            'institutional_type' => $result['institutional_type'] ?? null,
+            'authority_type' => $result['authority_type'] ?? null,
+            'authority_number' => $result['authority_number'] ?? null,
+            'series' => $result['series'] ?? null,
+            'program_discipline' => $result['program_discipline'] ?? null,
+            'program_degree_level' => $result['program_degree_level'] ?? null,
+        ]);
+    }
+
+    /**
+     * Fill missing fields for an existing student
+     */
+    public function fillMissingFields(Student $student): JsonResponse
+    {
+        $student->autoFillFromLookup();
+        $student->save();
+
+        return response()->json([
+            'message' => 'Student fields updated from lookup',
+            'data' => $student
+        ]);
+    }
+
+    /**
+     * Get list of institutions for dropdown
+     */
+    public function getInstitutions(): JsonResponse
+    {
+        $lookupService = app(StudentLookupService::class);
+        return response()->json($lookupService->getInstitutions());
+    }
+
+    /**
+     * Get programs for a specific institution
+     */
+    public function getProgramsByUii(Request $request): JsonResponse
+    {
+        $uii = $request->input('uii');
+        if (!$uii) {
+            return response()->json([]);
+        }
+
+        $lookupService = app(StudentLookupService::class);
+        return response()->json($lookupService->getProgramsByUii($uii));
+    }
+
+    /**
+     * Search institutions by name (for autocomplete)
+     */
+    public function searchInstitutions(Request $request): JsonResponse
+    {
+        $search = $request->input('q', '');
+        $lookupService = app(StudentLookupService::class);
+        return response()->json($lookupService->searchInstitutions($search));
+    }
+
+    /**
+     * Debug lookup - diagnose why auto-fill might not be working
+     */
+    public function debugLookup(Request $request): JsonResponse
+    {
+        $data = $request->only(['uii', 'name_of_institution', 'degree_program', 'program_major']);
+        $lookupService = app(StudentLookupService::class);
+        return response()->json($lookupService->debugLookup($data));
     }
 }

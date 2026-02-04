@@ -18,6 +18,12 @@ Route::get('students/masterlist', [StudentController::class, 'masterlist']);
 Route::apiResource('students', StudentController::class);
 Route::post('/students/import', [StudentController::class, 'import']);
 Route::post('students/bulk-update-field', [StudentController::class, 'bulkUpdateField']);
+Route::post('students/lookup-program-info', [StudentController::class, 'lookupProgramInfo']);
+Route::post('students/{student}/fill-missing-fields', [StudentController::class, 'fillMissingFields']);
+Route::get('students/institutions', [StudentController::class, 'getInstitutions']);
+Route::get('students/programs-by-uii', [StudentController::class, 'getProgramsByUii']);
+Route::get('students/search-institutions', [StudentController::class, 'searchInstitutions']);
+Route::post('students/debug-lookup', [StudentController::class, 'debugLookup']);
 
 // Disbursements Routes
 Route::apiResource('disbursements', DisbursementController::class);
