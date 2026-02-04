@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Services\LogService;
+use App\Services\StudentLookupService;
 
 class Student extends Model
 {
@@ -114,23 +115,54 @@ class Student extends Model
         return $this->hasOne(\App\Models\Disbursement::class, 'student_seq', 'seq')->latestOfMany();
     }
 
-    // Boot method for logging CRUD operations
+    // Boot method for logging CRUD operations and auto-fill
     protected static function boot()
     {
         parent::boot();
 
-        static::created(function ($model) {
-            LogService::log($model, $model->seq, 'create', null, $model->toArray());
+        // Auto-fill missing fields from directory/program offerings before creating
+        static::creating(function ($model) {
+            $model->autoFillFromLookup();
         });
 
+        // Also auto-fill when updating if fields are still empty
         static::updating(function ($model) {
+            $model->autoFillFromLookup();
             $oldData = $model->getOriginal();
             $newData = $model->getAttributes();
             LogService::log($model, $model->seq, 'update', $oldData, $newData);
         });
 
+        static::created(function ($model) {
+            LogService::log($model, $model->seq, 'create', null, $model->toArray());
+        });
+
         static::deleting(function ($model) {
             LogService::log($model, $model->seq, 'delete', $model->toArray(), null);
         });
+    }
+
+    /**
+     * Auto-fill missing fields from directory_entries and program_offering_entries
+     * Only fills fields that are null/empty - does not overwrite existing data
+     */
+    public function autoFillFromLookup(): void
+    {
+        $lookupService = app(StudentLookupService::class);
+        $data = $lookupService->fillMissingFields($this->getAttributes());
+
+        foreach ($data as $key => $value) {
+            if (in_array($key, $this->fillable) && empty($this->$key) && !empty($value)) {
+                $this->$key = $value;
+            }
+        }
+    }
+
+    /**
+     * Get the related directory entry (institution)
+     */
+    public function directoryEntry()
+    {
+        return $this->belongsTo(\App\Models\DirectoryEntry::class, 'uii', 'uii');
     }
 }
