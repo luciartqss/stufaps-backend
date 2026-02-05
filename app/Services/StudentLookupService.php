@@ -7,6 +7,23 @@ use Illuminate\Support\Facades\DB;
 class StudentLookupService
 {
     /**
+     * Normalize a string for comparison:
+     * - Lowercase
+     * - Trim leading/trailing spaces
+     * - Collapse multiple spaces into one
+     * - Normalize spaces around hyphens (remove spaces around -)
+     */
+    protected function normalizeForComparison(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+        // Collapse multiple spaces into one
+        $normalized = preg_replace('/\s+/', ' ', $normalized);
+        // Remove spaces around hyphens: " - " or " -" or "- " becomes "-"
+        $normalized = preg_replace('/\s*-\s*/', '-', $normalized);
+        return $normalized;
+    }
+
+    /**
      * Auto-fill missing student fields from directory_entries and program_offering_entries
      * Only fills fields that are null/empty - does not overwrite existing data
      */
@@ -31,39 +48,29 @@ class StudentLookupService
     }
 
     /**
-     * Lookup UII by institution name (tries exact match first, then partial)
+     * Lookup UII by institution name (exact match only, case and space insensitive)
+     * Returns null if no exact match is found - spelling must be accurate
      */
     public function lookupUiiByInstitutionName(string $institutionName): ?string
     {
-        $institutionNameLower = strtolower(trim($institutionName));
+        $normalizedInput = $this->normalizeForComparison($institutionName);
 
-        // Try exact match first (case-insensitive)
-        $entry = DB::table('directory_entries')
-            ->whereRaw('LOWER(name) = ?', [$institutionNameLower])
-            ->first();
+        // Get all directory entries and compare with normalized values
+        $entries = DB::table('directory_entries')->get(['uii', 'name', 'name_alt']);
 
-        if ($entry) {
-            return $entry->uii;
+        foreach ($entries as $entry) {
+            // Compare normalized names
+            if ($this->normalizeForComparison($entry->name) === $normalizedInput) {
+                return $entry->uii;
+            }
+            // Also check alternate name
+            if (!empty($entry->name_alt) && $this->normalizeForComparison($entry->name_alt) === $normalizedInput) {
+                return $entry->uii;
+            }
         }
 
-        // Try alternate name (case-insensitive)
-        $entry = DB::table('directory_entries')
-            ->whereRaw('LOWER(name_alt) = ?', [$institutionNameLower])
-            ->first();
-
-        if ($entry) {
-            return $entry->uii;
-        }
-
-        // Try partial match (LIKE, case-insensitive)
-        $entry = DB::table('directory_entries')
-            ->where(function ($q) use ($institutionNameLower) {
-                $q->whereRaw('LOWER(name) LIKE ?', ['%' . $institutionNameLower . '%'])
-                  ->orWhereRaw('LOWER(name_alt) LIKE ?', ['%' . $institutionNameLower . '%']);
-            })
-            ->first();
-
-        return $entry?->uii;
+        // No exact match found
+        return null;
     }
 
     /**
@@ -110,69 +117,57 @@ class StudentLookupService
         $uiiNormalized = ltrim($uii, '0') ?: '0';
         $uiiPadded = str_pad($uiiNormalized, 5, '0', STR_PAD_LEFT);
 
-        $degreeProgram = trim($studentData['degree_program']);
-        $degreeProgramLower = strtolower($degreeProgram);
-        $majorLower = !empty($studentData['program_major']) ? strtolower(trim($studentData['program_major'])) : null;
+        $normalizedProgram = $this->normalizeForComparison($studentData['degree_program']);
+        $normalizedMajor = !empty($studentData['program_major']) 
+            ? $this->normalizeForComparison($studentData['program_major']) 
+            : null;
 
-        // Build base query for UII matching
-        $baseQuery = function () use ($uii, $uiiNormalized, $uiiPadded) {
-            return DB::table('program_offering_entries')
-                ->where('is_active', true)
-                ->where(function ($q) use ($uii, $uiiNormalized, $uiiPadded) {
-                    $q->where('uii', $uii)
-                      ->orWhere('uii', $uiiNormalized)
-                      ->orWhere('uii', $uiiPadded);
-                });
-        };
+        // Get all programs for this UII and compare with normalized values
+        $programs = DB::table('program_offering_entries')
+            ->where('is_active', true)
+            ->where(function ($q) use ($uii, $uiiNormalized, $uiiPadded) {
+                $q->where('uii', $uii)
+                  ->orWhere('uii', $uiiNormalized)
+                  ->orWhere('uii', $uiiPadded);
+            })
+            ->get();
 
         $program = null;
 
-        // Strategy 1: Exact program match with major handling
-        if ($majorLower) {
-            // Student has a major - try exact match with major first
-            $program = $baseQuery()
-                ->whereRaw('LOWER(program) = ?', [$degreeProgramLower])
-                ->whereRaw('LOWER(major_specialization) = ?', [$majorLower])
-                ->first();
-
-            // Fallback: Try without major filter
-            if (!$program) {
-                $program = $baseQuery()
-                    ->whereRaw('LOWER(program) = ?', [$degreeProgramLower])
-                    ->first();
-            }
-        } else {
-            // Student has no major - prefer entries with null major_specialization
-            $program = $baseQuery()
-                ->whereRaw('LOWER(program) = ?', [$degreeProgramLower])
-                ->whereNull('major_specialization')
-                ->first();
-
-            // Fallback: Accept any entry for this program
-            if (!$program) {
-                $program = $baseQuery()
-                    ->whereRaw('LOWER(program) = ?', [$degreeProgramLower])
-                    ->first();
+        // Strategy 1: Exact match with both program and major (if major provided)
+        if ($normalizedMajor) {
+            foreach ($programs as $p) {
+                if ($this->normalizeForComparison($p->program) === $normalizedProgram &&
+                    !empty($p->major_specialization) &&
+                    $this->normalizeForComparison($p->major_specialization) === $normalizedMajor) {
+                    $program = $p;
+                    break;
+                }
             }
         }
 
-        // Strategy 2: Partial match (LIKE) if exact match fails
+        // Strategy 2: Exact program match with null major (if no major provided or no match with major)
+        if (!$program && !$normalizedMajor) {
+            foreach ($programs as $p) {
+                if ($this->normalizeForComparison($p->program) === $normalizedProgram &&
+                    empty($p->major_specialization)) {
+                    $program = $p;
+                    break;
+                }
+            }
+        }
+
+        // Strategy 3: Exact program match (any major) as final fallback
         if (!$program) {
-            $program = $baseQuery()
-                ->whereRaw('LOWER(program) LIKE ?', ['%' . $degreeProgramLower . '%'])
-                ->first();
-        }
-
-        // Strategy 3: Try matching without "Bachelor of Science in" prefix etc.
-        if (!$program) {
-            $shortProgram = $this->extractShortProgramName($degreeProgram);
-            if ($shortProgram && $shortProgram !== $degreeProgramLower) {
-                $program = $baseQuery()
-                    ->whereRaw('LOWER(program) LIKE ?', ['%' . $shortProgram . '%'])
-                    ->first();
+            foreach ($programs as $p) {
+                if ($this->normalizeForComparison($p->program) === $normalizedProgram) {
+                    $program = $p;
+                    break;
+                }
             }
         }
 
+        // No match found - spelling must be accurate
         if (!$program) {
             return $studentData;
         }
@@ -200,48 +195,6 @@ class StudentLookupService
         }
 
         return $studentData;
-    }
-
-    /**
-     * Extract a shorter program name by removing common prefixes
-     */
-    protected function extractShortProgramName(string $program): ?string
-    {
-        $prefixes = [
-            'bachelor of science in ',
-            'bachelor of arts in ',
-            'bachelor of ',
-            'master of science in ',
-            'master of arts in ',
-            'master of ',
-            'master in ',
-            'doctor of philosophy in ',
-            'doctor of ',
-            'associate in ',
-            'diploma in ',
-            'certificate in ',
-            'bs in ',
-            'bs ',
-            'ab in ',
-            'ab ',
-            'ma in ',
-            'ma ',
-            'ms in ',
-            'ms ',
-            'phd in ',
-            'phd ',
-        ];
-
-        $programLower = strtolower(trim($program));
-        
-        foreach ($prefixes as $prefix) {
-            if (str_starts_with($programLower, $prefix)) {
-                $short = substr($programLower, strlen($prefix));
-                return trim($short) ?: null;
-            }
-        }
-
-        return null;
     }
 
     /**
