@@ -213,7 +213,31 @@ class StudentController extends Controller
         $oldValue = $request->input('old_value');
         $newValue = $request->input('new_value');
 
-        if (!in_array($field, ['degree_program', 'name_of_institution'])) {
+        // Allow all safe bulk-editable fields matching the frontend fieldOptions
+        $allowedFields = [
+            'degree_program',
+            'program_major',
+            'program_discipline',
+            'program_degree_level',
+            'name_of_institution',
+            'institutional_type',
+            'region',
+            'province',
+            'municipality_city',
+            'street_brgy',
+            'congressional_district',
+            'scholarship_program',
+            'scholarship_status',
+            'special_group',
+            'authority_type',
+            'authority_number',
+            'series',
+            'basis_cmo',
+            'termination_reason',
+            'replacement_info',
+        ];
+
+        if (!in_array($field, $allowedFields)) {
             return response()->json(['error' => 'Invalid field'], 400);
         }
 
