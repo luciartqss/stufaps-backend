@@ -12,6 +12,9 @@ use App\Http\Controllers\ScholarshipProgramRecordController;
 
 // Dashboard Routes
 Route::get('dashboard/stats', [DashboardController::class, 'stats']);
+Route::get('dashboard/warnings/no-uii', [DashboardController::class, 'getNoUiiStudents']);
+Route::get('dashboard/warnings/incomplete-info', [DashboardController::class, 'getIncompleteInfoStudents']);
+Route::get('dashboard/warnings/no-authority', [DashboardController::class, 'getNoAuthorityStudents']);
 
 // Students Routes
 Route::get('students/masterlist', [StudentController::class, 'masterlist']);
