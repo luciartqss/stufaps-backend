@@ -30,6 +30,7 @@ class Disbursement extends Model
         'payment_amount',
         'lddap_number',
         'disbursement_date',
+        'status',
         'remarks',
     ];
 

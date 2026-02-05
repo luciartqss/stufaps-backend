@@ -39,6 +39,7 @@ class Student extends Model
         'award_year',
         'scholarship_program',
         'award_number',
+        'learner_reference_number',
         'surname',
         'first_name',
         'middle_name',
