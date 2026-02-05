@@ -26,6 +26,7 @@ return new class extends Migration
             $table->decimal('payment_amount', 12, 2)->nullable();
             $table->string('lddap_number')->nullable();
             $table->date('disbursement_date')->nullable();
+            $table->string('status')->nullable();
             $table->text('remarks')->nullable();
             $table->timestamps();
 

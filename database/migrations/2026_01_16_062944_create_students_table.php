@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('award_year')->nullable();
             $table->string('scholarship_program')->nullable();
             $table->string('award_number')->nullable();
+            $table->string('learner_reference_number')->nullable();
             $table->string('surname')->nullable();
             $table->string('first_name')->nullable();
             $table->string('middle_name')->nullable();

@@ -36,6 +36,7 @@ class DisbursementController extends Controller
             'payment_amount' => 'nullable|numeric|min:0',
             'lddap_number' => 'nullable|string|max:191',
             'disbursement_date' => 'nullable|date',
+            'status' => 'nullable|string|max:191',
             'remarks' => 'nullable|string',
         ]);
 
@@ -75,6 +76,7 @@ class DisbursementController extends Controller
             'payment_amount' => 'nullable|numeric|min:0',
             'lddap_number' => 'nullable|string|max:191',
             'disbursement_date' => 'nullable|date',
+            'status' => 'nullable|string|max:191',
             'remarks' => 'nullable|string',
         ]);
 
