@@ -11,7 +11,7 @@ class ScholarshipProgramRecord extends Model
         'scholarship_program_name',
         'description',
         'total_slot',
-        'academic_year'
+        'Academic_year'
     ];
 
 }

@@ -36,8 +36,9 @@ Route::POST('scholarship_programs/update-slots', [ScholarshipProgramController::
 Route::post('scholarship_programs/edit-slots', [ScholarshipProgramController::class, 'editSlot']);
 //ends here
 
+Route::get('scholarship_program_records/grouped', [ScholarshipProgramRecordController::class, 'getPrograms']);
+Route::put('scholarship_program_records/updateSlots', [ScholarshipProgramRecordController::class, 'updateSlots']);
 Route::apiResource('scholarship_program_records', ScholarshipProgramRecordController::class);
-Route::post('/scholarship_program_records', [ScholarshipProgramRecordController::class, 'store']);
 
 // Logs Routes
 Route::get('logs', [LogController::class, 'index']);
