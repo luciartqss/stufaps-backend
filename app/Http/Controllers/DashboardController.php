@@ -141,13 +141,47 @@ class DashboardController extends Controller
 
             // ===== DATA QUALITY WARNINGS =====
             
-            // Students without UII - only get count, data fetched via separate endpoint
+            // 1. Students without UII - only get count, data fetched via separate endpoint
             $noUiiCount = Student::where(function($q) {
                 $q->whereNull('uii')->orWhere('uii', '');
             })->count();
 
-            // Duplicate Award Numbers - Only flag if MORE THAN ONE "Active" student has the same award number
-            // (Award numbers can be reused when a student is terminated/graduated)
+            // 2. Students without LRN (Learner Reference Number)
+            $noLrnCount = Student::where(function($q) {
+                $q->whereNull('learner_reference_number')->orWhere('learner_reference_number', '');
+            })->count();
+
+            // 3. Duplicate LRN - Students with same Learner Reference Number
+            $duplicateLrns = Student::select('learner_reference_number')
+                ->selectRaw('COUNT(*) as count')
+                ->whereNotNull('learner_reference_number')
+                ->where('learner_reference_number', '!=', '')
+                ->groupBy('learner_reference_number')
+                ->having('count', '>', 1)
+                ->get()
+                ->toArray();
+
+            $duplicateLrnDetails = [];
+            if (count($duplicateLrns) > 0) {
+                $dupLrns = array_column($duplicateLrns, 'learner_reference_number');
+                $duplicateLrnDetails = Student::whereIn('learner_reference_number', $dupLrns)
+                    ->select('seq', 'surname', 'first_name', 'learner_reference_number', 'scholarship_program', 'scholarship_status')
+                    ->orderBy('learner_reference_number')
+                    ->get()
+                    ->toArray();
+            }
+
+            // 4. Students without Award Numbers (incomplete details)
+            $noAwardNumberCount = Student::where(function($q) {
+                $q->whereNull('award_number')->orWhere('award_number', '');
+            })->count();
+
+            // 5. Duplicate Award Numbers with specific rules:
+            // - Only ONE active student can have an award number (multiple active = warning)
+            // - Graduated students' award numbers CANNOT be reused (if graduated + another student has it = warning)
+            // - Terminated students' award numbers CAN be reused (OK)
+            
+            // First, find award numbers with more than one ACTIVE student
             $duplicateActiveAwardNumbers = Student::select('award_number')
                 ->selectRaw('COUNT(*) as count')
                 ->whereNotNull('award_number')
@@ -155,40 +189,78 @@ class DashboardController extends Controller
                 ->where('scholarship_status', 'Active')
                 ->groupBy('award_number')
                 ->having('count', '>', 1)
-                ->get()
+                ->pluck('award_number')
                 ->toArray();
 
-            // Get details of students with duplicate active award numbers
+            // Second, find award numbers where a GRADUATED student's number is being used by another student
+            $graduatedAwardNumbers = Student::select('award_number')
+                ->whereNotNull('award_number')
+                ->where('award_number', '!=', '')
+                ->where('scholarship_status', 'Graduated')
+                ->pluck('award_number')
+                ->toArray();
+
+            $reusedGraduatedAwards = [];
+            if (count($graduatedAwardNumbers) > 0) {
+                $reusedGraduatedAwards = Student::select('award_number')
+                    ->whereIn('award_number', $graduatedAwardNumbers)
+                    ->where('scholarship_status', '!=', 'Graduated')
+                    ->distinct()
+                    ->pluck('award_number')
+                    ->toArray();
+            }
+
+            // Combine both types of violations
+            $allDuplicateAwardNumbers = array_unique(array_merge($duplicateActiveAwardNumbers, $reusedGraduatedAwards));
+
+            // Get details of students with duplicate award number violations
             $duplicateAwardDetails = [];
-            if (count($duplicateActiveAwardNumbers) > 0) {
-                $dupAwardNos = array_column($duplicateActiveAwardNumbers, 'award_number');
-                $duplicateAwardDetails = Student::whereIn('award_number', $dupAwardNos)
+            if (count($allDuplicateAwardNumbers) > 0) {
+                $duplicateAwardDetails = Student::whereIn('award_number', $allDuplicateAwardNumbers)
                     ->select('seq', 'surname', 'first_name', 'award_number', 'scholarship_program', 'scholarship_status')
                     ->orderBy('award_number')
-                    ->orderByRaw("CASE WHEN scholarship_status = 'Active' THEN 0 ELSE 1 END")
+                    ->orderByRaw("CASE 
+                        WHEN scholarship_status = 'Active' THEN 0 
+                        WHEN scholarship_status = 'Graduated' THEN 1 
+                        ELSE 2 END")
                     ->get()
                     ->toArray();
             }
 
-            $duplicateAwardNumbers = $duplicateActiveAwardNumbers;
+            // 6. Students with incomplete information
+            // Fields that are REQUIRED (null = incomplete):
+            // Personal: surname, first_name, sex, date_of_birth
+            // Contact: contact_number, email_address, street_brgy, municipality_city, province, congressional_district, zip_code
+            // Institution: name_of_institution, uii, institutional_type, region, degree_program, program_degree_level
+            // Scholarship: in_charge, award_year, scholarship_program, award_number, authority_type, authority_number, series, scholarship_status
+            // LRN: learner_reference_number
+            // 
+            // Fields that CAN be null (not counted as incomplete):
+            // - special_group, certification_number, program_major, program_discipline
+            // - replacement_info, termination_reason (remarks)
+            // - middle_name, extension, is_priority
+            
+            $requiredFields = [
+                'surname', 'first_name', 'sex', 'date_of_birth',
+                'contact_number', 'email_address', 'street_brgy', 'municipality_city', 
+                'province', 'congressional_district', 'zip_code',
+                'name_of_institution', 'uii', 'institutional_type', 'region', 
+                'degree_program', 'program_degree_level',
+                'in_charge', 'award_year', 'scholarship_program', 'award_number',
+                'authority_type', 'authority_number', 'series', 'scholarship_status',
+                'learner_reference_number', 'basis_cmo'
+            ];
 
-            // Students without authority info - only get count
-            $noAuthorityCount = Student::whereNotNull('uii')
-                ->where('uii', '!=', '')
-                ->where(function ($q) {
-                    $q->whereNull('authority_type')
-                      ->orWhere('authority_type', '');
-                })
-                ->count();
-
-            // Students with incomplete personal info - only get count
-            $incompleteInfoCount = Student::where(function ($q) {
-                    $q->whereNull('surname')->orWhere('surname', '')
-                      ->orWhereNull('first_name')->orWhere('first_name', '')
-                      ->orWhereNull('date_of_birth')
-                      ->orWhereNull('contact_number')->orWhere('contact_number', '');
-                })
-                ->count();
+            // Build query for incomplete info - student has at least one required field null or empty
+            $incompleteInfoQuery = Student::where(function($query) use ($requiredFields) {
+                foreach ($requiredFields as $field) {
+                    $query->orWhere(function($q) use ($field) {
+                        $q->whereNull($field)->orWhere($field, '');
+                    });
+                }
+            });
+            
+            $incompleteInfoCount = (clone $incompleteInfoQuery)->count();
 
             return response()->json([
                 'total_students' => $totalStudents,
@@ -210,13 +282,20 @@ class DashboardController extends Controller
                     'no_uii' => [
                         'count' => $noUiiCount,
                     ],
-                    'duplicate_award_numbers' => [
-                        'count' => count($duplicateAwardNumbers),
-                        'duplicates' => $duplicateAwardNumbers,
-                        'students' => $duplicateAwardDetails,
+                    'no_lrn' => [
+                        'count' => $noLrnCount,
                     ],
-                    'no_authority' => [
-                        'count' => $noAuthorityCount,
+                    'duplicate_lrn' => [
+                        'count' => count($duplicateLrnDetails),
+                        'duplicates' => $duplicateLrns,
+                        'students' => $duplicateLrnDetails,
+                    ],
+                    'no_award_number' => [
+                        'count' => $noAwardNumberCount,
+                    ],
+                    'duplicate_award_numbers' => [
+                        'count' => count($duplicateAwardDetails),
+                        'students' => $duplicateAwardDetails,
                     ],
                     'incomplete_info' => [
                         'count' => $incompleteInfoCount,
@@ -243,7 +322,7 @@ class DashboardController extends Controller
 
             $query = Student::where(function($q) {
                 $q->whereNull('uii')->orWhere('uii', '');
-            })->select('seq', 'surname', 'first_name', 'name_of_institution', 'award_number');
+            })->select('seq', 'surname', 'first_name', 'name_of_institution', 'award_number', 'scholarship_status');
 
             $total = $query->count();
             $students = $query->skip(($page - 1) * $perPage)
@@ -264,7 +343,69 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get paginated list of students with incomplete info
+     * Get paginated list of students without LRN
+     */
+    public function getNoLrnStudents(Request $request): JsonResponse
+    {
+        try {
+            $page = $request->input('page', 1);
+            $perPage = $request->input('per_page', 5);
+
+            $query = Student::where(function($q) {
+                $q->whereNull('learner_reference_number')->orWhere('learner_reference_number', '');
+            })->select('seq', 'surname', 'first_name', 'name_of_institution', 'award_number', 'scholarship_status');
+
+            $total = $query->count();
+            $students = $query->skip(($page - 1) * $perPage)
+                ->take($perPage)
+                ->get()
+                ->toArray();
+
+            return response()->json([
+                'students' => $students,
+                'total' => $total,
+                'page' => (int)$page,
+                'per_page' => (int)$perPage,
+                'total_pages' => ceil($total / $perPage),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get paginated list of students without Award Number
+     */
+    public function getNoAwardNumberStudents(Request $request): JsonResponse
+    {
+        try {
+            $page = $request->input('page', 1);
+            $perPage = $request->input('per_page', 5);
+
+            $query = Student::where(function($q) {
+                $q->whereNull('award_number')->orWhere('award_number', '');
+            })->select('seq', 'surname', 'first_name', 'name_of_institution', 'scholarship_program', 'scholarship_status');
+
+            $total = $query->count();
+            $students = $query->skip(($page - 1) * $perPage)
+                ->take($perPage)
+                ->get()
+                ->toArray();
+
+            return response()->json([
+                'students' => $students,
+                'total' => $total,
+                'page' => (int)$page,
+                'per_page' => (int)$perPage,
+                'total_pages' => ceil($total / $perPage),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get paginated list of students with incomplete information
      */
     public function getIncompleteInfoStudents(Request $request): JsonResponse
     {
@@ -272,53 +413,52 @@ class DashboardController extends Controller
             $page = $request->input('page', 1);
             $perPage = $request->input('per_page', 5);
 
-            $query = Student::where(function ($q) {
-                $q->whereNull('surname')->orWhere('surname', '')
-                  ->orWhereNull('first_name')->orWhere('first_name', '')
-                  ->orWhereNull('date_of_birth')
-                  ->orWhereNull('contact_number')->orWhere('contact_number', '');
-            })->select('seq', 'surname', 'first_name', 'award_number');
+            // Required fields - same as in stats()
+            $requiredFields = [
+                'surname', 'first_name', 'sex', 'date_of_birth',
+                'contact_number', 'email_address', 'street_brgy', 'municipality_city', 
+                'province', 'congressional_district', 'zip_code',
+                'name_of_institution', 'uii', 'institutional_type', 'region', 
+                'degree_program', 'program_degree_level',
+                'in_charge', 'award_year', 'scholarship_program', 'award_number',
+                'authority_type', 'authority_number', 'series', 'scholarship_status',
+                'learner_reference_number', 'basis_cmo'
+            ];
 
-            $total = $query->count();
+            $query = Student::where(function($query) use ($requiredFields) {
+                foreach ($requiredFields as $field) {
+                    $query->orWhere(function($q) use ($field) {
+                        $q->whereNull($field)->orWhere($field, '');
+                    });
+                }
+            })->select('seq', 'surname', 'first_name', 'name_of_institution', 'scholarship_program', 'scholarship_status');
+
+            $total = (clone $query)->count();
             $students = $query->skip(($page - 1) * $perPage)
                 ->take($perPage)
                 ->get()
                 ->toArray();
 
-            return response()->json([
-                'students' => $students,
-                'total' => $total,
-                'page' => (int)$page,
-                'per_page' => (int)$perPage,
-                'total_pages' => ceil($total / $perPage),
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * Get paginated list of students without authority info
-     */
-    public function getNoAuthorityStudents(Request $request): JsonResponse
-    {
-        try {
-            $page = $request->input('page', 1);
-            $perPage = $request->input('per_page', 5);
-
-            $query = Student::whereNotNull('uii')
-                ->where('uii', '!=', '')
-                ->where(function ($q) {
-                    $q->whereNull('authority_type')
-                      ->orWhere('authority_type', '');
-                })
-                ->select('seq', 'surname', 'first_name', 'uii', 'name_of_institution', 'degree_program');
-
-            $total = $query->count();
-            $students = $query->skip(($page - 1) * $perPage)
-                ->take($perPage)
-                ->get()
-                ->toArray();
+            // For each student, find which fields are missing
+            $studentSeqs = array_column($students, 'seq');
+            if (count($studentSeqs) > 0) {
+                $fullStudents = Student::whereIn('seq', $studentSeqs)->get()->keyBy('seq');
+                
+                foreach ($students as &$student) {
+                    $fullStudent = $fullStudents[$student['seq']] ?? null;
+                    if ($fullStudent) {
+                        $missingFields = [];
+                        foreach ($requiredFields as $field) {
+                            $value = $fullStudent->$field;
+                            if ($value === null || $value === '') {
+                                $missingFields[] = $field;
+                            }
+                        }
+                        $student['missing_fields'] = $missingFields;
+                        $student['missing_count'] = count($missingFields);
+                    }
+                }
+            }
 
             return response()->json([
                 'students' => $students,
