@@ -17,6 +17,8 @@ Route::get('dashboard/warnings/incomplete-info', [DashboardController::class, 'g
 Route::get('dashboard/warnings/no-authority', [DashboardController::class, 'getNoAuthorityStudents']);
 
 // Students Routes
+Route::get('students/filter-options', [StudentController::class, 'filterOptions']);
+Route::get('students/export', [StudentController::class, 'export']);
 Route::get('students/masterlist', [StudentController::class, 'masterlist']);
 Route::apiResource('students', StudentController::class);
 Route::post('/students/import', [StudentController::class, 'import']);
