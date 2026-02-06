@@ -53,8 +53,6 @@ class ScholarshipProgramRecordController extends Controller
     ]);
 }
 
-
-
     public function show($id)
     {
         $program = ScholarshipProgramRecord::findOrFail($id);
@@ -67,11 +65,23 @@ class ScholarshipProgramRecordController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'scholarship_program_name' => 'nullable|string|max:191',
-            'description'              => 'nullable|string|max:255',
+            'scholarship_program_name' => 'required|string|max:191',
+            'description'              => 'required|string|max:255',
             'total_slot'               => 'nullable|integer|min:0',
             'Academic_year'            => 'required|string|max:20',
         ]);
+
+        // Check for existing record
+        $exists = ScholarshipProgramRecord::where('scholarship_program_name', $validated['scholarship_program_name'])
+            ->where('description', $validated['description'])
+            ->where('Academic_year', $validated['Academic_year'])
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'message' => 'This scholarship program with the same description and academic year already exists.',
+            ], 422);
+        }
 
         $program = ScholarshipProgramRecord::create($validated);
 
@@ -123,7 +133,6 @@ class ScholarshipProgramRecordController extends Controller
         ]);
     }
 
-
     public function updateSlots(Request $request) : JsonResponse
     {
 
@@ -140,5 +149,5 @@ class ScholarshipProgramRecordController extends Controller
             'program' => $program
         ]);
     }
-  
+
 }
