@@ -13,14 +13,78 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class StudentController extends Controller
 {
     /**
-     * Display a listing of students.
+     * Display a listing of students with server-side pagination and filtering.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        // Eager load all disbursements so the frontend export has complete data
-        $students = \App\Models\Student::with('disbursements')->get();
+        $query = Student::query();
 
-        // Add academic_year and semester from the latest disbursement (keep full list attached)
+        // Search filter (name, program, award number, contact, email)
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('surname', 'like', "%{$search}%")
+                    ->orWhere('first_name', 'like', "%{$search}%")
+                    ->orWhere('middle_name', 'like', "%{$search}%")
+                    ->orWhere('scholarship_program', 'like', "%{$search}%")
+                    ->orWhere('award_number', 'like', "%{$search}%")
+                    ->orWhere('contact_number', 'like', "%{$search}%")
+                    ->orWhere('email_address', 'like', "%{$search}%");
+            });
+        }
+
+        // Direct field filters
+        $filters = [
+            'scholarship_status' => 'status',
+            'scholarship_program' => 'program',
+            'degree_program' => 'course',
+            'region' => 'region',
+            'province' => 'province',
+            'municipality_city' => 'city',
+            'name_of_institution' => 'school',
+            'special_group' => 'specialGroup',
+            'authority_type' => 'authorityType',
+            'award_year' => 'awardYear',
+        ];
+
+        foreach ($filters as $column => $param) {
+            if ($value = $request->input($param)) {
+                $query->where($column, $value);
+            }
+        }
+
+        // Priority filter
+        if ($request->has('priority') && $request->input('priority') !== null && $request->input('priority') !== '') {
+            $query->where('is_priority', $request->input('priority'));
+        }
+
+        // Academic year and semester filters (from disbursements)
+        if ($academicYear = $request->input('academicYear')) {
+            $query->whereHas('disbursements', function ($q) use ($academicYear) {
+                $q->where('academic_year', $academicYear);
+            });
+        }
+
+        if ($semester = $request->input('semester')) {
+            $query->whereHas('disbursements', function ($q) use ($semester) {
+                $q->where('semester', $semester);
+            });
+        }
+
+        // Get total count before pagination
+        $total = $query->count();
+
+        // Pagination
+        $page = (int) $request->input('page', 1);
+        $pageSize = (int) $request->input('pageSize', 10);
+        
+        $students = $query
+            ->with('disbursements')
+            ->orderBy('seq', 'asc')
+            ->skip(($page - 1) * $pageSize)
+            ->take($pageSize)
+            ->get();
+
+        // Add academic_year and semester from the latest disbursement
         $students = $students->map(function ($student) {
             $latest = $student->disbursements
                 ->sortByDesc('disbursement_date')
@@ -32,6 +96,93 @@ class StudentController extends Controller
 
             return $student;
         });
+
+        return response()->json([
+            'data' => $students,
+            'total' => $total,
+            'page' => $page,
+            'pageSize' => $pageSize,
+        ]);
+    }
+
+    /**
+     * Get filter options for dropdowns (unique values).
+     */
+    public function filterOptions(): JsonResponse
+    {
+        return response()->json([
+            'scholarshipPrograms' => Student::distinct()->whereNotNull('scholarship_program')->pluck('scholarship_program'),
+            'statusValues' => Student::distinct()->whereNotNull('scholarship_status')->pluck('scholarship_status'),
+            'courses' => Student::distinct()->whereNotNull('degree_program')->pluck('degree_program'),
+            'regions' => Student::distinct()->whereNotNull('region')->pluck('region'),
+            'provinces' => Student::distinct()->whereNotNull('province')->pluck('province'),
+            'cities' => Student::distinct()->whereNotNull('municipality_city')->pluck('municipality_city'),
+            'schools' => Student::distinct()->whereNotNull('name_of_institution')->pluck('name_of_institution'),
+            'priorities' => Student::distinct()->whereNotNull('is_priority')->where('is_priority', '!=', '')->pluck('is_priority'),
+            'specialGroups' => Student::distinct()->whereNotNull('special_group')->pluck('special_group'),
+            'authorityTypes' => Student::distinct()->whereNotNull('authority_type')->pluck('authority_type'),
+            'awardYears' => Student::distinct()->whereNotNull('award_year')->pluck('award_year'),
+            'academicYears' => \App\Models\Disbursement::distinct()->whereNotNull('academic_year')->pluck('academic_year'),
+            'semesters' => \App\Models\Disbursement::distinct()->whereNotNull('semester')->pluck('semester'),
+        ]);
+    }
+
+    /**
+     * Export all students (with filters but no pagination) for Excel export.
+     */
+    public function export(Request $request): JsonResponse
+    {
+        $query = Student::query();
+
+        // Apply same filters as index
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('surname', 'like', "%{$search}%")
+                    ->orWhere('first_name', 'like', "%{$search}%")
+                    ->orWhere('middle_name', 'like', "%{$search}%")
+                    ->orWhere('scholarship_program', 'like', "%{$search}%")
+                    ->orWhere('award_number', 'like', "%{$search}%")
+                    ->orWhere('contact_number', 'like', "%{$search}%")
+                    ->orWhere('email_address', 'like', "%{$search}%");
+            });
+        }
+
+        $filters = [
+            'scholarship_status' => 'status',
+            'scholarship_program' => 'program',
+            'degree_program' => 'course',
+            'region' => 'region',
+            'province' => 'province',
+            'municipality_city' => 'city',
+            'name_of_institution' => 'school',
+            'special_group' => 'specialGroup',
+            'authority_type' => 'authorityType',
+            'award_year' => 'awardYear',
+        ];
+
+        foreach ($filters as $column => $param) {
+            if ($value = $request->input($param)) {
+                $query->where($column, $value);
+            }
+        }
+
+        if ($request->has('priority') && $request->input('priority') !== null && $request->input('priority') !== '') {
+            $query->where('is_priority', $request->input('priority'));
+        }
+
+        if ($academicYear = $request->input('academicYear')) {
+            $query->whereHas('disbursements', function ($q) use ($academicYear) {
+                $q->where('academic_year', $academicYear);
+            });
+        }
+
+        if ($semester = $request->input('semester')) {
+            $query->whereHas('disbursements', function ($q) use ($semester) {
+                $q->where('semester', $semester);
+            });
+        }
+
+        $students = $query->with('disbursements')->orderBy('seq', 'asc')->get();
 
         return response()->json($students);
     }
