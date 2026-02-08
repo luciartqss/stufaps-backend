@@ -32,17 +32,94 @@ class DashboardController extends Controller
 
             // Get basic stats
             $totalStudents = (clone $studentQuery)->count();
-            $activeScholars = (clone $studentQuery)->where('scholarship_status', 'Active')->count();
-            $graduated = (clone $studentQuery)->where('scholarship_status', 'Graduated')->count();
-            $terminated = (clone $studentQuery)->where('scholarship_status', 'Terminated')->count();
-            
-            // Calculate "others" (any status not in the main 3)
-            $othersCount = (clone $studentQuery)
-                ->whereNotIn('scholarship_status', ['Active', 'Graduated', 'Terminated'])
-                ->whereNotNull('scholarship_status')
-                ->count();
+
+            // When filtering by AY, compute EFFECTIVE status for that AY:
+            // - If a student has disbursements in a LATER AY than the filtered one,
+            //   they were still active during the filtered AY (even if currently terminated/graduated).
+            // - If the filtered AY is their LAST AY with disbursements, use their current status.
+            // Without AY filter, just use current scholarship_status.
+            if ($academicYear) {
+                // Get student seqs that have disbursements in the filtered AY
+                $filteredStudentSeqs = Disbursement::query()
+                    ->where('academic_year', $academicYear)
+                    ->when($semester, fn($q) => $q->where('semester', $semester))
+                    ->distinct()
+                    ->pluck('student_seq');
+
+                // For each of these students, get their max AY from all disbursements
+                $maxAyPerStudent = Disbursement::whereIn('student_seq', $filteredStudentSeqs)
+                    ->groupBy('student_seq')
+                    ->select('student_seq', DB::raw('MAX(academic_year) as max_ay'))
+                    ->pluck('max_ay', 'student_seq');
+
+                // Students whose latest AY is AFTER the filtered AY → effectively "On-going" during filtered AY
+                $effectivelyActiveSeqs = $maxAyPerStudent
+                    ->filter(fn($maxAy) => $maxAy > $academicYear)
+                    ->keys()
+                    ->toArray();
+
+                // Students whose latest AY is the filtered AY (or earlier) → use current status
+                $atLatestAySeqs = $maxAyPerStudent
+                    ->filter(fn($maxAy) => $maxAy <= $academicYear)
+                    ->keys()
+                    ->toArray();
+
+                // Count effective statuses
+                $effectivelyActiveCount = count($effectivelyActiveSeqs);
+                $currentlyActiveAtMax = Student::whereIn('seq', $atLatestAySeqs)
+                    ->where('scholarship_status', 'Active')->count();
+                $activeScholars = $effectivelyActiveCount + $currentlyActiveAtMax;
+
+                $graduated = Student::whereIn('seq', $atLatestAySeqs)
+                    ->where('scholarship_status', 'Graduated')->count();
+                $terminated = Student::whereIn('seq', $atLatestAySeqs)
+                    ->where('scholarship_status', 'Terminated')->count();
+
+                // Others = total minus the 3 main categories
+                $othersCount = $totalStudents - $activeScholars - $graduated - $terminated;
+
+                // Build effective status distribution for charts
+                $statusDistribution = collect();
+                if ($activeScholars > 0) $statusDistribution->push(['status' => 'Active', 'count' => $activeScholars]);
+                if ($graduated > 0) $statusDistribution->push(['status' => 'Graduated', 'count' => $graduated]);
+                if ($terminated > 0) $statusDistribution->push(['status' => 'Terminated', 'count' => $terminated]);
+                if ($othersCount > 0) $statusDistribution->push(['status' => 'Others', 'count' => $othersCount]);
+                $statusDistribution = $statusDistribution->toArray();
+            } else {
+                $activeScholars = (clone $studentQuery)->where('scholarship_status', 'Active')->count();
+                $graduated = (clone $studentQuery)->where('scholarship_status', 'Graduated')->count();
+                $terminated = (clone $studentQuery)->where('scholarship_status', 'Terminated')->count();
+                
+                // Calculate "others" (any status not in the main 3)
+                $othersCount = $totalStudents - $activeScholars - $graduated - $terminated;
+
+                // Get scholarship status distribution (for pie chart)
+                $statusDistribution = (clone $studentQuery)
+                    ->select('scholarship_status')
+                    ->selectRaw('COUNT(*) as count')
+                    ->groupBy('scholarship_status')
+                    ->get()
+                    ->map(function ($item) {
+                        $status = $item->scholarship_status ?? 'Unknown';
+                        // Group non-standard statuses as "Others"
+                        if (!in_array($status, ['Active', 'Graduated', 'Terminated'])) {
+                            $status = 'Others';
+                        }
+                        return ['status' => $status, 'count' => $item->count];
+                    })
+                    ->groupBy('status')
+                    ->map(function ($group) {
+                        return [
+                            'status' => $group->first()['status'],
+                            'count' => $group->sum('count')
+                        ];
+                    })
+                    ->values()
+                    ->toArray();
+            }
 
             // Get total disbursed amount with filters
+            // Use COALESCE to fall back: payment_amount → amount → 0
             $disbursementQuery = Disbursement::query();
             if ($semester) {
                 $disbursementQuery->where('semester', $semester);
@@ -50,31 +127,7 @@ class DashboardController extends Controller
             if ($academicYear) {
                 $disbursementQuery->where('academic_year', $academicYear);
             }
-            $totalDisbursed = $disbursementQuery->sum('payment_amount') ?? 0;
-
-            // Get scholarship status distribution (for pie chart)
-            $statusDistribution = (clone $studentQuery)
-                ->select('scholarship_status')
-                ->selectRaw('COUNT(*) as count')
-                ->groupBy('scholarship_status')
-                ->get()
-                ->map(function ($item) {
-                    $status = $item->scholarship_status ?? 'Unknown';
-                    // Group non-standard statuses as "Others"
-                    if (!in_array($status, ['Active', 'Graduated', 'Terminated'])) {
-                        $status = 'Others';
-                    }
-                    return ['status' => $status, 'count' => $item->count];
-                })
-                ->groupBy('status')
-                ->map(function ($group) {
-                    return [
-                        'status' => $group->first()['status'],
-                        'count' => $group->sum('count')
-                    ];
-                })
-                ->values()
-                ->toArray();
+            $totalDisbursed = $disbursementQuery->selectRaw('COALESCE(SUM(COALESCE(payment_amount, amount, 0)), 0) as total')->value('total') ?? 0;
 
             // Get students by degree level
             $degreeLevels = (clone $studentQuery)
