@@ -600,4 +600,110 @@ class StudentController extends Controller
         $lookupService = app(StudentLookupService::class);
         return response()->json($lookupService->debugLookup($data));
     }
+
+    /**
+     * Check for potential duplicates among existing students.
+     * Accepts an array of candidate rows and returns matches.
+     */
+    public function checkDuplicates(Request $request): JsonResponse
+    {
+        $candidates = $request->input('candidates', []);
+
+        if (empty($candidates)) {
+            return response()->json(['duplicates' => []]);
+        }
+
+        $results = [];
+
+        foreach ($candidates as $index => $candidate) {
+            $surname = trim($candidate['surname'] ?? '');
+            $firstName = trim($candidate['first_name'] ?? '');
+            $middleName = trim($candidate['middle_name'] ?? '');
+            $awardNumber = trim($candidate['award_number'] ?? '');
+            $institution = trim($candidate['name_of_institution'] ?? '');
+
+            $matches = [];
+
+            // 1. Exact full name match (surname + first_name + middle_name)
+            if ($surname && $firstName) {
+                $nameQuery = Student::where('surname', 'LIKE', $surname)
+                    ->where('first_name', 'LIKE', $firstName);
+
+                if ($middleName) {
+                    $nameQuery->where('middle_name', 'LIKE', $middleName);
+                }
+
+                $nameMatches = $nameQuery->select('seq', 'surname', 'first_name', 'middle_name', 'award_number', 'name_of_institution', 'scholarship_program')
+                    ->limit(5)
+                    ->get();
+
+                foreach ($nameMatches as $m) {
+                    $matches[] = [
+                        'seq' => $m->seq,
+                        'name' => trim("{$m->surname}, {$m->first_name} {$m->middle_name}"),
+                        'award_number' => $m->award_number,
+                        'institution' => $m->name_of_institution,
+                        'program' => $m->scholarship_program,
+                        'match_type' => 'full_name',
+                    ];
+                }
+            }
+
+            // 2. Award number match (if provided and non-empty)
+            if ($awardNumber) {
+                $awardMatches = Student::where('award_number', $awardNumber)
+                    ->select('seq', 'surname', 'first_name', 'middle_name', 'award_number', 'name_of_institution', 'scholarship_program')
+                    ->limit(5)
+                    ->get();
+
+                foreach ($awardMatches as $m) {
+                    // Avoid adding if already matched by name
+                    $existingSeqs = array_column($matches, 'seq');
+                    if (!in_array($m->seq, $existingSeqs)) {
+                        $matches[] = [
+                            'seq' => $m->seq,
+                            'name' => trim("{$m->surname}, {$m->first_name} {$m->middle_name}"),
+                            'award_number' => $m->award_number,
+                            'institution' => $m->name_of_institution,
+                            'program' => $m->scholarship_program,
+                            'match_type' => 'award_number',
+                        ];
+                    }
+                }
+            }
+
+            // 3. Name + Institution match
+            if ($surname && $firstName && $institution) {
+                $instMatches = Student::where('surname', 'LIKE', $surname)
+                    ->where('first_name', 'LIKE', $firstName)
+                    ->where('name_of_institution', 'LIKE', $institution)
+                    ->select('seq', 'surname', 'first_name', 'middle_name', 'award_number', 'name_of_institution', 'scholarship_program')
+                    ->limit(5)
+                    ->get();
+
+                foreach ($instMatches as $m) {
+                    $existingSeqs = array_column($matches, 'seq');
+                    if (!in_array($m->seq, $existingSeqs)) {
+                        $matches[] = [
+                            'seq' => $m->seq,
+                            'name' => trim("{$m->surname}, {$m->first_name} {$m->middle_name}"),
+                            'award_number' => $m->award_number,
+                            'institution' => $m->name_of_institution,
+                            'program' => $m->scholarship_program,
+                            'match_type' => 'name_institution',
+                        ];
+                    }
+                }
+            }
+
+            if (!empty($matches)) {
+                $results[] = [
+                    'row_index' => $index,
+                    'matches' => $matches,
+                ];
+            }
+        }
+
+        return response()->json(['duplicates' => $results]);
+    }
 }

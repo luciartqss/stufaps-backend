@@ -30,6 +30,7 @@ Route::get('students/institutions', [StudentController::class, 'getInstitutions'
 Route::get('students/programs-by-uii', [StudentController::class, 'getProgramsByUii']);
 Route::get('students/search-institutions', [StudentController::class, 'searchInstitutions']);
 Route::post('students/debug-lookup', [StudentController::class, 'debugLookup']);
+Route::post('students/check-duplicates', [StudentController::class, 'checkDuplicates']);
 
 // Disbursements Routes
 Route::apiResource('disbursements', DisbursementController::class);
